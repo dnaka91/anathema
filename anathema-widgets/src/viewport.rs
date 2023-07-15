@@ -2,6 +2,7 @@ use anathema_render::Size;
 use anathema_widget_core::contexts::{LayoutCtx, PaintCtx, PositionCtx, WithSize};
 use anathema_widget_core::error::Result;
 use anathema_widget_core::layout::{Axis, Direction, Layouts};
+use anathema_widget_core::node::{NodeEval, Nodes};
 use anathema_widget_core::{
     AnyWidget, TextPath, ValuesAttributes, Widget, WidgetContainer, WidgetFactory,
 };
@@ -50,16 +51,16 @@ impl Widget for Viewport {
     fn layout<'widget, 'parent>(
         &mut self,
         mut ctx: LayoutCtx<'widget, 'parent>,
-        children: &mut Vec<WidgetContainer>,
+        nodes: NodeEval<'widget>,
     ) -> Result<Size> {
         let many = Many::new(self.direction, self.axis, self.offset, true);
         let mut layout = Layouts::new(many, &mut ctx);
-        layout.layout(children)?;
+        layout.layout(nodes)?;
         self.offset = layout.layout.offset();
         layout.size()
     }
 
-    fn position(&mut self, ctx: PositionCtx, children: &mut [WidgetContainer]) {
+    fn position(&mut self, mut ctx: PositionCtx, nodes: &mut Nodes) {
         let mut pos = ctx.pos;
         if let Direction::Backward = self.direction {
             match self.axis {
@@ -78,7 +79,7 @@ impl Widget for Viewport {
             Axis::Vertical => pos.y += offset,
         }
 
-        for widget in children {
+        for widget in nodes.iter_mut() {
             if let Direction::Forward = self.direction {
                 widget.position(pos);
             }
@@ -100,9 +101,9 @@ impl Widget for Viewport {
         }
     }
 
-    fn paint(&mut self, mut ctx: PaintCtx<'_, WithSize>, children: &mut [WidgetContainer]) {
+    fn paint(&mut self, mut ctx: PaintCtx<'_, WithSize>, nodes: &mut Nodes) {
         let region = ctx.create_region();
-        for child in children {
+        for child in nodes.iter_mut() {
             let ctx = ctx.sub_context(Some(&region));
             child.paint(ctx);
         }

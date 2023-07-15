@@ -7,10 +7,9 @@ mod attributes;
 pub mod contexts;
 pub mod error;
 mod gen;
-mod id;
 pub mod layout;
 mod lookup;
-mod node;
+pub mod node;
 mod path;
 pub mod template;
 mod values;
@@ -21,13 +20,11 @@ mod widget;
 pub mod testing;
 
 pub use anathema_render::Color;
-pub use id::{Id, NodeId};
 pub use lookup::{Factory, WidgetFactory};
 pub use values::{Fragment, Number, Value, ValuesAttributes};
 pub use widget::{AnyWidget, Widget, WidgetContainer};
 
 pub use crate::attributes::{fields, Attribute, Attributes};
-pub use crate::gen::generator::Generator;
 pub use crate::gen::store::Values;
 pub use crate::path::{Path, TextPath};
 

@@ -5,13 +5,12 @@ use std::sync::Arc;
 use anathema_render::{ScreenPos, Size, Style};
 
 use super::contexts::{PaintCtx, PositionCtx, Unsized, WithSize};
-use super::id::NodeId;
 use super::layout::{Constraints, Padding};
 use super::{Color, Display, LocalPos, Pos, Region};
 use crate::contexts::LayoutCtx;
 use crate::error::Result;
 use crate::gen::store::Values;
-use crate::node::Nodes;
+use crate::node::{Nodes, NodeId, NodeEval};
 use crate::template::Template;
 
 // Layout:
@@ -35,16 +34,16 @@ pub trait Widget {
     fn layout<'widget, 'parent>(
         &mut self,
         ctx: LayoutCtx<'widget, 'parent>,
-        children: &mut Vec<WidgetContainer>,
+        nodes: NodeEval<'widget>,
     ) -> Result<Size>;
 
     /// By the time this function is called the widget container
     /// has already set the position. This is useful to correctly set the position
     /// of the children.
-    fn position(&mut self, ctx: PositionCtx, children: &mut [WidgetContainer]);
+    fn position(&mut self, ctx: PositionCtx, nodes: &mut Nodes);
 
-    fn paint(&mut self, mut ctx: PaintCtx<'_, WithSize>, children: &mut [WidgetContainer]) {
-        for child in children {
+    fn paint(&mut self, mut ctx: PaintCtx<'_, WithSize>, nodes: &mut Nodes) {
+        for child in nodes.iter_mut() {
             let ctx = ctx.sub_context(None);
             child.paint(ctx);
         }
@@ -61,17 +60,17 @@ pub trait AnyWidget {
     fn layout_any<'widget, 'parent>(
         &mut self,
         ctx: LayoutCtx<'widget, 'parent>,
-        children: &mut Vec<WidgetContainer>,
+        nodes: NodeEval<'_>,
     ) -> Result<Size>;
 
     fn kind_any(&self) -> &'static str;
 
-    fn position_any(&mut self, ctx: PositionCtx, children: &mut [WidgetContainer]);
+    fn position_any(&mut self, ctx: PositionCtx, nodes: &mut Nodes);
 
     fn paint_any<'gen: 'ctx, 'ctx>(
         &mut self,
         ctx: PaintCtx<'_, WithSize>,
-        children: &mut [WidgetContainer],
+        nodes: &mut Nodes,
     );
 }
 
@@ -83,17 +82,17 @@ impl Widget for Box<dyn AnyWidget> {
     fn layout<'widget, 'parent>(
         &mut self,
         ctx: LayoutCtx<'widget, 'parent>,
-        children: &mut Vec<WidgetContainer>,
+        nodes: NodeEval<'widget>,
     ) -> Result<Size> {
-        self.deref_mut().layout_any(ctx, children)
+        self.deref_mut().layout_any(ctx, nodes)
     }
 
-    fn position(&mut self, ctx: PositionCtx, children: &mut [WidgetContainer]) {
-        self.deref_mut().position_any(ctx, children)
+    fn position(&mut self, ctx: PositionCtx, nodes: &mut Nodes) {
+        self.deref_mut().position_any(ctx, nodes)
     }
 
-    fn paint(&mut self, ctx: PaintCtx<'_, WithSize>, children: &mut [WidgetContainer]) {
-        self.deref_mut().paint_any(ctx, children)
+    fn paint(&mut self, ctx: PaintCtx<'_, WithSize>, nodes: &mut Nodes) {
+        self.deref_mut().paint_any(ctx, nodes)
     }
 }
 
@@ -116,25 +115,25 @@ impl<T: Widget + 'static + PartialEq<T>> AnyWidget for T {
     fn layout_any<'widget, 'parent>(
         &mut self,
         ctx: LayoutCtx<'widget, 'parent>,
-        children: &mut Vec<WidgetContainer>,
+        nodes: NodeEval<'_>,
     ) -> Result<Size> {
-        self.layout(ctx, children)
+        self.layout(ctx, nodes)
     }
 
     fn kind_any(&self) -> &'static str {
         self.kind()
     }
 
-    fn position_any(&mut self, ctx: PositionCtx, children: &mut [WidgetContainer]) {
-        self.position(ctx, children)
+    fn position_any(&mut self, ctx: PositionCtx, nodes: &mut Nodes) {
+        self.position(ctx, nodes)
     }
 
     fn paint_any<'gen: 'ctx, 'ctx>(
         &mut self,
         ctx: PaintCtx<'_, WithSize>,
-        children: &mut [WidgetContainer],
+        nodes: &mut Nodes,
     ) {
-        self.paint(ctx, children)
+        self.paint(ctx, nodes)
     }
 }
 
@@ -146,17 +145,17 @@ impl Widget for Box<dyn Widget> {
     fn layout<'parent>(
         &mut self,
         layout: LayoutCtx<'_, 'parent>,
-        children: &mut Vec<WidgetContainer>,
+        nodes: NodeEval<'_>,
     ) -> Result<Size> {
-        self.as_mut().layout(layout, children)
+        self.as_mut().layout(layout, nodes)
     }
 
-    fn position(&mut self, ctx: PositionCtx, children: &mut [WidgetContainer]) {
-        self.as_mut().position(ctx, children)
+    fn position(&mut self, ctx: PositionCtx, nodes: &mut Nodes) {
+        self.as_mut().position(ctx, nodes)
     }
 
-    fn paint(&mut self, ctx: PaintCtx<'_, WithSize>, children: &mut [WidgetContainer]) {
-        self.as_mut().paint(ctx, children)
+    fn paint(&mut self, ctx: PaintCtx<'_, WithSize>, nodes: &mut Nodes) {
+        self.as_mut().paint(ctx, nodes)
     }
 }
 
@@ -165,6 +164,7 @@ impl Widget for Box<dyn Widget> {
 /// * [`position`](Self::position)
 /// * [`paint`](Self::paint)
 pub struct WidgetContainer {
+    pub id: NodeId,
     pub children: Nodes,
     pub(crate) background: Option<Color>,
     pub(crate) display: Display,
@@ -189,8 +189,9 @@ impl PartialEq for WidgetContainer {
 }
 
 impl WidgetContainer {
-    pub fn new(inner: Box<dyn AnyWidget>, templates: Arc<[Template]>) -> Self {
+    pub fn new(id: NodeId, inner: Box<dyn AnyWidget>, templates: Arc<[Template]>) -> Self {
         Self {
+            id,
             children: Nodes::new(templates),
             display: Display::Show,
             size: Size::ZERO,
@@ -267,20 +268,22 @@ impl WidgetContainer {
         self.inner.kind()
     }
 
+    // TODO: review if this should take a `LayoutCtx` instead?
     pub fn layout<'parent>(
         &mut self,
+        parent_id: &NodeId,
         constraints: Constraints,
         values: &Values<'_>,
     ) -> Result<Size> {
         match self.display {
             Display::Exclude => self.size = Size::ZERO,
             _ => {
-                let layout = LayoutCtx::new(&self.children, values, constraints, self.padding);
-                panic!()
-                // let size = self.inner.layout(layout, &mut self.children)?;
-                // self.size = size;
-                // self.size.width += self.padding.left + self.padding.right;
-                // self.size.height += self.padding.top + self.padding.bottom;
+                let layout = LayoutCtx::new(parent_id, values, constraints, self.padding);
+                let mut eval = self.children.gen(layout);
+                let size = self.inner.layout(layout, eval)?;
+                self.size = size;
+                self.size.width += self.padding.left + self.padding.right;
+                self.size.height += self.padding.top + self.padding.bottom;
             }
         }
 
@@ -288,35 +291,33 @@ impl WidgetContainer {
     }
 
     pub fn position(&mut self, pos: Pos) {
-        panic!()
-        // self.pos = pos;
+        self.pos = pos;
 
-        // let pos = Pos::new(
-        //     self.pos.x + self.padding.left as i32,
-        //     self.pos.y + self.padding.top as i32,
-        // );
+        let pos = Pos::new(
+            self.pos.x + self.padding.left as i32,
+            self.pos.y + self.padding.top as i32,
+        );
 
-        // let ctx = PositionCtx::new(pos, self.inner_size());
-        // self.inner.position(ctx, &mut self.children);
+        let ctx = PositionCtx::new(pos, self.inner_size());
+        self.inner.position(ctx, &mut self.children);
     }
 
     pub fn paint(&mut self, ctx: PaintCtx<'_, Unsized>) {
-        panic!()
-        // if let Display::Hide | Display::Exclude = self.display {
-        //     return;
-        // }
+        if let Display::Hide | Display::Exclude = self.display {
+            return;
+        }
 
-        // // Paint the background without the padding,
-        // // using the outer size and current pos.
-        // let mut ctx = ctx.into_sized(self.outer_size(), self.pos);
-        // self.paint_background(&mut ctx);
+        // Paint the background without the padding,
+        // using the outer size and current pos.
+        let mut ctx = ctx.into_sized(self.outer_size(), self.pos);
+        self.paint_background(&mut ctx);
 
-        // let pos = Pos::new(
-        //     self.pos.x + self.padding.left as i32,
-        //     self.pos.y + self.padding.top as i32,
-        // );
-        // ctx.update(self.inner_size(), pos);
-        // self.inner.paint(ctx, &mut self.children);
+        let pos = Pos::new(
+            self.pos.x + self.padding.left as i32,
+            self.pos.y + self.padding.top as i32,
+        );
+        ctx.update(self.inner_size(), pos);
+        self.inner.paint(ctx, &mut self.children);
     }
 
     fn paint_background(&self, ctx: &mut PaintCtx<'_, WithSize>) -> Option<()> {
@@ -333,9 +334,5 @@ impl WidgetContainer {
         }
 
         Some(())
-    }
-
-    pub fn id(&self) -> NodeId {
-        panic!()
     }
 }

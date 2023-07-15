@@ -2,6 +2,7 @@ use anathema_render::Size;
 use anathema_widget_core::contexts::{LayoutCtx, PaintCtx, PositionCtx, WithSize};
 use anathema_widget_core::error::Result;
 use anathema_widget_core::layout::Layouts;
+use anathema_widget_core::node::{NodeEval, Nodes};
 use anathema_widget_core::{
     AnyWidget, TextPath, ValuesAttributes, Widget, WidgetContainer, WidgetFactory,
 };
@@ -75,7 +76,7 @@ impl Widget for ZStack {
     fn layout<'widget, 'parent>(
         &mut self,
         mut ctx: LayoutCtx<'widget, 'parent>,
-        children: &mut Vec<WidgetContainer>,
+        nodes: NodeEval<'widget>,
     ) -> Result<Size> {
         if let Some(min_width) = self.min_width {
             ctx.constraints.min_width = ctx.constraints.min_width.max(min_width);
@@ -90,17 +91,17 @@ impl Widget for ZStack {
             ctx.constraints.make_height_tight(height);
         }
 
-        Layouts::new(Stacked, &mut ctx).layout(children)?.size()
+        Layouts::new(Stacked, &mut ctx).layout(nodes)?.size()
     }
 
-    fn position(&mut self, ctx: PositionCtx, children: &mut [WidgetContainer]) {
-        for widget in children {
+    fn position(&mut self, mut ctx: PositionCtx, nodes: &mut Nodes) {
+        for widget in nodes.iter_mut() {
             widget.position(ctx.pos);
         }
     }
 
-    fn paint(&mut self, mut ctx: PaintCtx<'_, WithSize>, children: &mut [WidgetContainer]) {
-        for child in children {
+    fn paint(&mut self, mut ctx: PaintCtx<'_, WithSize>, nodes: &mut Nodes) {
+        for child in nodes.iter_mut() {
             let ctx = ctx.sub_context(None);
             child.paint(ctx);
         }

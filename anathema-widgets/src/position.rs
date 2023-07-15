@@ -2,6 +2,7 @@ use anathema_render::Size;
 use anathema_widget_core::contexts::{LayoutCtx, PositionCtx};
 use anathema_widget_core::error::Result;
 use anathema_widget_core::layout::{HorzEdge, Layouts, VertEdge};
+use anathema_widget_core::node::{NodeEval, Nodes};
 use anathema_widget_core::{
     AnyWidget, Pos, TextPath, ValuesAttributes, Widget, WidgetContainer, WidgetFactory,
 };
@@ -95,10 +96,10 @@ impl Widget for Position {
     fn layout<'widget, 'parent>(
         &mut self,
         mut ctx: LayoutCtx<'widget, 'parent>,
-        children: &mut Vec<WidgetContainer>,
+        nodes: NodeEval<'widget>,
     ) -> Result<Size> {
         let mut layout = Layouts::new(Single, &mut ctx);
-        layout.layout(children)?;
+        layout.layout(nodes)?;
         if let HorzEdge::Right(_) = self.horz_edge {
             layout.expand_horz();
         }
@@ -108,8 +109,8 @@ impl Widget for Position {
         layout.size()
     }
 
-    fn position(&mut self, mut ctx: PositionCtx, children: &mut [WidgetContainer]) {
-        let child = match children.first_mut() {
+    fn position(&mut self, mut ctx: PositionCtx, nodes: &mut Nodes) {
+        let child = match nodes.first_mut() {
             Some(c) => c,
             None => return,
         };

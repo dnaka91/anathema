@@ -2,6 +2,7 @@ use anathema_render::Size;
 use anathema_widget_core::contexts::LayoutCtx;
 use anathema_widget_core::error::Result;
 use anathema_widget_core::layout::{Axis, Direction, Layout};
+use anathema_widget_core::node::NodeEval;
 use anathema_widget_core::WidgetContainer;
 
 use super::many::Many;
@@ -20,9 +21,9 @@ impl Layout for Vertical {
     fn layout<'widget, 'parent>(
         &mut self,
         ctx: &mut LayoutCtx<'widget, 'parent>,
-        children: &mut Vec<WidgetContainer>,
+        nodes: NodeEval<'widget>,
         size: &mut Size,
     ) -> Result<()> {
-        self.0.layout(ctx, children, size)
+        self.0.layout(ctx, nodes, size)
     }
 }

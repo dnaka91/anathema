@@ -2,6 +2,7 @@ use anathema_render::{Size, Style};
 use anathema_widget_core::contexts::{LayoutCtx, PaintCtx, PositionCtx, WithSize};
 use anathema_widget_core::error::Result;
 use anathema_widget_core::layout::Layouts;
+use anathema_widget_core::node::{NodeEval, Nodes};
 use anathema_widget_core::{
     AnyWidget, LocalPos, TextPath, Value, ValuesAttributes, Widget, WidgetContainer, WidgetFactory,
 };
@@ -269,7 +270,7 @@ impl Widget for Border {
     fn layout<'widget, 'parent>(
         &mut self,
         mut ctx: LayoutCtx<'widget, 'parent>,
-        children: &mut Vec<WidgetContainer>,
+        nodes: NodeEval<'widget>,
     ) -> Result<Size> {
         let border_layout = BorderLayout {
             min_height: self.min_height,
@@ -279,11 +280,11 @@ impl Widget for Border {
             border_size: self.border_size(),
         };
         let mut layout = Layouts::new(border_layout, &mut ctx);
-        layout.layout(children)?.size()
+        layout.layout(nodes)?.size()
     }
 
-    fn position(&mut self, mut ctx: PositionCtx, children: &mut [WidgetContainer]) {
-        let child = match children.first_mut() {
+    fn position(&mut self, mut ctx: PositionCtx, nodes: &mut Nodes) {
+        let child = match nodes.first_mut() {
             Some(child) => child,
             None => return,
         };
@@ -299,9 +300,9 @@ impl Widget for Border {
         child.position(ctx.pos);
     }
 
-    fn paint(&mut self, mut ctx: PaintCtx<'_, WithSize>, children: &mut [WidgetContainer]) {
+    fn paint(&mut self, mut ctx: PaintCtx<'_, WithSize>, nodes: &mut Nodes) {
         // Draw the child
-        if let Some(child) = children.first_mut() {
+        if let Some(child) = nodes.first_mut() {
             let clipping_region = ctx.create_region();
 
             let child_ctx = ctx.sub_context(Some(&clipping_region));

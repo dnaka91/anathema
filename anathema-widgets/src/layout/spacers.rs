@@ -2,6 +2,7 @@ use anathema_render::Size;
 use anathema_widget_core::contexts::LayoutCtx;
 use anathema_widget_core::error::Result;
 use anathema_widget_core::layout::{Axis, Layout};
+use anathema_widget_core::node::{NodeEval, Nodes};
 use anathema_widget_core::WidgetContainer;
 
 use crate::Spacer;
@@ -12,7 +13,7 @@ impl Layout for SpacerLayout {
     fn layout<'widget, 'parent>(
         &mut self,
         ctx: &mut LayoutCtx<'widget, 'parent>,
-        _children: &mut Vec<WidgetContainer>,
+        _: NodeEval<'_>,
         size: &mut Size,
     ) -> Result<()> {
         *size = Size::new(ctx.constraints.min_width, ctx.constraints.min_height);
@@ -25,13 +26,14 @@ impl Layout for SpacerLayout {
 /// This is different to [`SpacerLayout`] which
 /// does the layout of the children of a single [`Spacer`],
 /// whereas this does the layout of multiple [`Spacer`]s.
-pub fn layout(
+pub fn layout<'a>(
     ctx: &mut LayoutCtx<'_, '_>,
-    children: &mut Vec<WidgetContainer>,
+    children: impl Iterator<Item = &'a mut WidgetContainer>,
     axis: Axis,
 ) -> Result<Size> {
     let mut final_size = Size::ZERO;
-    let count = children.iter().filter(|c| c.kind() == Spacer::KIND).count();
+    let spacers = children.filter(|c| c.kind() == Spacer::KIND).collect::<Vec<_>>();
+    let count = spacers.len();
 
     if count == 0 {
         return Ok(final_size);
@@ -49,8 +51,8 @@ pub fn layout(
         }
     };
 
-    for spacer in children.iter_mut().filter(|c| c.kind() == Spacer::KIND) {
-        let size = spacer.layout(constraints, ctx.values)?;
+    for spacer in spacers {
+        let size = spacer.layout(ctx.parent_id, constraints, ctx.values)?;
 
         match axis {
             Axis::Horizontal => {

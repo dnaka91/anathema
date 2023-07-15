@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use anathema_widget_core::contexts::DataCtx;
+use anathema_widget_core::node::Nodes;
 use anathema_widget_core::WidgetContainer;
 use crossterm::event::{read, Event as CTEvent};
 pub use crossterm::event::{
@@ -70,19 +71,19 @@ impl From<CTEvent> for Event {
 }
 
 pub trait Events {
-    fn event(&mut self, event: Event, ctx: &mut DataCtx, tree: &mut Vec<WidgetContainer>) -> Event;
+    fn event(&mut self, event: Event, ctx: &mut DataCtx, nodes: &mut Nodes) -> Event;
 }
 
 pub struct DefaultEvents<F>(pub F)
 where
-    F: FnMut(Event, &mut DataCtx, &mut Vec<WidgetContainer>) -> Event;
+    F: FnMut(Event, &mut DataCtx, &mut Nodes) -> Event;
 
 impl<F> Events for DefaultEvents<F>
 where
-    F: FnMut(Event, &mut DataCtx, &mut Vec<WidgetContainer>) -> Event,
+    F: FnMut(Event, &mut DataCtx, &mut Nodes) -> Event,
 {
-    fn event(&mut self, event: Event, ctx: &mut DataCtx, tree: &mut Vec<WidgetContainer>) -> Event {
-        (self.0)(event, ctx, tree)
+    fn event(&mut self, event: Event, ctx: &mut DataCtx, nodes: &mut Nodes) -> Event {
+        (self.0)(event, ctx, nodes)
     }
 }
 

@@ -2,6 +2,7 @@ use anathema_render::{Size, Style};
 use anathema_widget_core::contexts::{LayoutCtx, PaintCtx, PositionCtx, WithSize};
 use anathema_widget_core::error::Result;
 use anathema_widget_core::layout::{Axis, Layouts};
+use anathema_widget_core::node::{NodeEval, Nodes};
 use anathema_widget_core::{
     AnyWidget, LocalPos, TextPath, ValuesAttributes, Widget, WidgetContainer, WidgetFactory,
 };
@@ -98,9 +99,9 @@ impl Widget for Expand {
     fn layout<'widget, 'parent>(
         &mut self,
         mut ctx: LayoutCtx<'widget, 'parent>,
-        children: &mut Vec<WidgetContainer>,
+        nodes: NodeEval<'widget>,
     ) -> Result<Size> {
-        let mut size = Layouts::new(Single, &mut ctx).layout(children)?.size()?;
+        let mut size = Layouts::new(Single, &mut ctx).layout(nodes)?.size()?;
 
         match self.axis {
             Some(Axis::Horizontal) => size.width = ctx.constraints.max_width,
@@ -114,13 +115,13 @@ impl Widget for Expand {
         Ok(size)
     }
 
-    fn position(&mut self, ctx: PositionCtx, children: &mut [WidgetContainer]) {
-        if let Some(c) = children.first_mut() {
+    fn position(&mut self, ctx: PositionCtx, nodes: &mut Nodes) {
+        if let Some(c) = nodes.first_mut() {
             c.position(ctx.pos)
         }
     }
 
-    fn paint(&mut self, mut ctx: PaintCtx<'_, WithSize>, children: &mut [WidgetContainer]) {
+    fn paint(&mut self, mut ctx: PaintCtx<'_, WithSize>, nodes: &mut Nodes) {
         if !self.fill.is_empty() {
             for y in 0..ctx.local_size.height {
                 let mut used_width = 0;
@@ -134,7 +135,7 @@ impl Widget for Expand {
             }
         }
 
-        if let Some(child) = children.first_mut() {
+        if let Some(child) = nodes.first_mut() {
             let ctx = ctx.sub_context(None);
             child.paint(ctx);
         }

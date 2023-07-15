@@ -6,6 +6,7 @@ use super::index::Index;
 use super::store::Values;
 use super::ValueRef;
 use crate::error::Result;
+use crate::node::{Action, Node, NodeId};
 use crate::template::Template;
 use crate::{Factory, Value, WidgetContainer};
 
@@ -24,6 +25,7 @@ enum State<'parent> {
 // -----------------------------------------------------------------------------
 pub struct Scope<'parent> {
     pub(crate) expressions: Vec<Expression<'parent>>,
+    parent_id: &'parent NodeId,
     state: State<'parent>,
     inner: Option<Box<Scope<'parent>>>,
     index: Index,
@@ -31,6 +33,7 @@ pub struct Scope<'parent> {
 
 impl<'parent> Scope<'parent> {
     pub(crate) fn new(
+        parent_id: &'parent NodeId,
         templates: &'parent [Template],
         values: &Values<'parent>,
         dir: Direction,
@@ -41,6 +44,7 @@ impl<'parent> Scope<'parent> {
             .collect::<Vec<_>>();
 
         Self {
+            parent_id,
             index: Index::new(dir, templates.len()),
             expressions,
             inner: None,
@@ -78,7 +82,7 @@ impl<'parent> Scope<'parent> {
         }
     }
 
-    pub(crate) fn next(&mut self, values: &mut Values<'parent>) -> Option<Result<WidgetContainer>> {
+    pub(crate) fn next(&mut self, values: &mut Values<'parent>) -> Option<Result<Action>> {
         loop {
             match self.inner.as_mut().and_then(|scope| scope.next(values)) {
                 next @ Some(_) => break next,
@@ -91,14 +95,23 @@ impl<'parent> Scope<'parent> {
                     let expr = &self.expressions[index];
 
                     match expr {
-                        Expression::Node(template) => break Some(Factory::exec(template, values)),
+                        Expression::Node(template) => {
+                            let container = match Factory::exec(self.parent_id.next(), template, values) {
+                                Ok(container) => container,
+                                Err(e) => break Some(Err(e)),
+                            };
+
+                            let node = Node::Single(container);
+                            break Some(Ok(Action::Add(node)));
+                        }
                         Expression::View(id) => {
                             let view = match values.root.views.get(&*id) {
                                 Some(view) => view,
                                 None => continue,
                             };
                             let templates = view.templates();
-                            let scope = Scope::new(&templates, values, self.index.dir);
+                            let scope =
+                                Scope::new(self.parent_id, &templates, values, self.index.dir);
                             self.inner = Some(Box::new(scope));
                         }
                         Expression::For {
@@ -112,9 +125,11 @@ impl<'parent> Scope<'parent> {
                                 binding,
                                 value_index: Index::new(self.index.dir, collection.len()),
                             };
+                            break Some(Ok(Action::StartCollection));
                         }
                         Expression::Block(templates) => {
-                            let scope = Scope::new(templates, values, self.index.dir);
+                            let scope =
+                                Scope::new(self.parent_id, templates, values, self.index.dir);
                             self.inner = Some(Box::new(scope));
                         }
                     }
@@ -129,13 +144,13 @@ impl<'parent> Scope<'parent> {
                         Some(idx) => &collection[idx],
                         None => {
                             self.state = State::Block;
-                            continue;
+                            break Some(Ok(Action::EndCollection));
                         }
                     };
 
                     values.set(Cow::Borrowed(binding), ValueRef::Borrowed(value));
 
-                    let scope = Scope::new(body, values, self.index.dir);
+                    let scope = Scope::new(self.parent_id, body, values, self.index.dir);
                     self.inner = Some(Box::new(scope));
                 }
             }

@@ -2,6 +2,7 @@ use anathema_render::Size;
 use anathema_widget_core::contexts::{LayoutCtx, PaintCtx, PositionCtx, WithSize};
 use anathema_widget_core::error::Result;
 use anathema_widget_core::layout::Layouts;
+use anathema_widget_core::node::{NodeEval, Nodes};
 use anathema_widget_core::{
     AnyWidget, TextPath, ValuesAttributes, Widget, WidgetContainer, WidgetFactory,
 };
@@ -32,20 +33,22 @@ impl Widget for Spacer {
         Self::KIND
     }
 
-    fn layout(&mut self, mut ctx: LayoutCtx<'_, '_>, _: &mut Vec<WidgetContainer>) -> Result<Size> {
+    fn layout<'widget, 'parent>(
+        &mut self,
+        mut ctx: LayoutCtx<'widget, 'parent>,
+        nodes: NodeEval<'widget>,
+    ) -> Result<Size> {
         // debug_assert!(
         //     ctx.constraints.is_width_tight() && ctx.constraints.is_height_tight(),
         //     "the layout context needs to be tight for a spacer"
         // );
 
-        Layouts::new(SpacerLayout, &mut ctx)
-            .layout(&mut vec![])?
-            .size()
+        Layouts::new(SpacerLayout, &mut ctx).layout(nodes)?.size()
     }
 
-    fn position(&mut self, _: PositionCtx, _: &mut [WidgetContainer]) {}
+    fn position(&mut self, _: PositionCtx, _: &mut Nodes) {}
 
-    fn paint(&mut self, _: PaintCtx<'_, WithSize>, _: &mut [WidgetContainer]) {}
+    fn paint(&mut self, _: PaintCtx<'_, WithSize>, _: &mut Nodes) {}
 }
 
 pub(crate) struct SpacerFactory;

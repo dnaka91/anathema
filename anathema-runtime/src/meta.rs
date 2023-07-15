@@ -5,8 +5,6 @@ use anathema_render::Size;
 use anathema_widget_core::contexts::DataCtx;
 use anathema_widget_core::{Number, Value};
 
-use crate::frame::Frame;
-
 const META: &'static str = "_meta";
 const TIMINGS: &'static str = "timings";
 const SIZE: &'static str = "size";
@@ -63,7 +61,7 @@ impl Meta {
         );
     }
 
-    pub(super) fn update(&mut self, ctx: &mut DataCtx, frame: &Frame) {
+    pub(super) fn update(&mut self, ctx: &mut DataCtx, node_len: usize) {
         match ctx.get_mut::<HashMap<String, Value>>(META) {
             None => {
                 let mut metamap = HashMap::new();
@@ -77,7 +75,7 @@ impl Meta {
                 metamap.insert(SIZE.into(), size.into());
                 metamap.insert(TIMINGS.to_string(), timings.into());
                 metamap.insert(FOCUS.to_string(), self.focus.into());
-                metamap.insert(COUNT.to_string(), frame.count().into());
+                metamap.insert(COUNT.to_string(), node_len.into());
                 ctx.insert(META, metamap);
             }
             Some(meta) => {
@@ -89,9 +87,9 @@ impl Meta {
                 };
 
                 match meta.get_mut(COUNT) {
-                    Some(count) => *count = frame.count().into(),
+                    Some(count) => *count = node_len.into(),
                     None => {
-                        meta.insert(COUNT.to_string(), frame.count().into());
+                        meta.insert(COUNT.to_string(), node_len.into());
                     }
                 };
 

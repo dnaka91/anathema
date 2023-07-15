@@ -6,7 +6,7 @@ use unicode_width::UnicodeWidthChar;
 pub use self::data::DataCtx;
 use crate::gen::store::Values;
 use crate::layout::{Align, Constraints, Padding};
-use crate::node::Nodes;
+use crate::node::{Nodes, NodeId};
 use crate::template::Template;
 use crate::{LocalPos, Pos, Region};
 
@@ -17,7 +17,7 @@ mod data;
 // -----------------------------------------------------------------------------
 #[derive(Copy, Clone)]
 pub struct LayoutCtx<'widget, 'parent> {
-    pub nodes: &'parent Nodes,
+    pub parent_id: &'widget NodeId,
     pub values: &'widget Values<'parent>,
     pub constraints: Constraints,
     pub padding: Padding,
@@ -25,13 +25,13 @@ pub struct LayoutCtx<'widget, 'parent> {
 
 impl<'widget, 'parent> LayoutCtx<'widget, 'parent> {
     pub fn new(
-        nodes: &'parent Nodes,
+        parent_id: &'widget NodeId,
         values: &'widget Values<'parent>,
         constraints: Constraints,
         padding: Padding,
     ) -> Self {
         Self {
-            nodes,
+            parent_id,
             values,
             constraints,
             padding,

@@ -3,31 +3,29 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use anathema_render::{size, Screen, Size};
-use anathema_widget_core::contexts::{DataCtx, PaintCtx};
+use anathema_widget_core::contexts::{DataCtx, LayoutCtx, PaintCtx};
 use anathema_widget_core::error::Result;
-use anathema_widget_core::layout::Constraints;
+use anathema_widget_core::layout::{Constraints, Padding};
+use anathema_widget_core::node::{NodeId, Nodes};
 use anathema_widget_core::template::Template;
 use anathema_widget_core::views::View;
-use anathema_widget_core::{Generator, Pos, Values};
+use anathema_widget_core::{Pos, Values};
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use events::Event;
 
-use self::frame::Frame;
 use self::meta::Meta;
 use crate::events::{EventProvider, Events};
 
 pub mod events;
-mod frame;
 mod meta;
 
 pub struct Runtime<E, ER> {
     pub enable_meta: bool,
     meta: Meta,
-    templates: Arc<[Template]>,
+    nodes: Nodes,
     screen: Screen,
     output: Stdout,
     constraints: Constraints,
-    current_frame: Frame,
     ctx: DataCtx,
     events: E,
     event_receiver: ER,
@@ -64,8 +62,7 @@ where
             meta: Meta::new(size),
             screen,
             constraints,
-            templates: templates.into(),
-            current_frame: Frame::empty(),
+            nodes: Nodes::new(templates),
             ctx,
             events,
             event_receiver,
@@ -80,26 +77,25 @@ where
     }
 
     fn layout(&mut self) -> Result<()> {
-        panic!()
-        // let mut values = Values::new(&self.ctx);
-        // let mut widgets = Generator::new(&self.templates, &mut values);
-        // let mut frame = Frame::empty();
-        // while let Some(mut widget) = widgets.next(&mut values).transpose()? {
-        //     widget.layout(self.constraints, &values)?;
-        //     frame.push(widget);
-        // }
-        // self.current_frame = frame;
-        // Ok(())
+        let values = Values::new(&self.ctx);
+        let root_id = NodeId::empty();
+        let layout_ctx = LayoutCtx::new(&root_id, &values, self.constraints, Padding::ZERO);
+        let mut node_gen = self.nodes.gen(layout_ctx);
+        let mut values = values.next();
+        while let Some(widget) = node_gen.next(&mut values).transpose()? {
+            widget.layout(&root_id, self.constraints, &values)?;
+        }
+        Ok(())
     }
 
     fn position(&mut self) {
-        for widget in &mut self.current_frame {
+        for widget in &mut self.nodes.iter_mut() {
             widget.position(Pos::ZERO);
         }
     }
 
     fn paint(&mut self) {
-        for widget in &mut self.current_frame {
+        for widget in &mut self.nodes.iter_mut() {
             widget.paint(PaintCtx::new(&mut self.screen, None));
         }
     }
@@ -109,9 +105,7 @@ where
 
         'run: loop {
             while let Some(event) = self.event_receiver.next() {
-                let event = self
-                    .events
-                    .event(event, &mut self.ctx, &mut self.current_frame.inner);
+                let event = self.events.event(event, &mut self.ctx, &mut self.nodes);
                 match event {
                     Event::Resize(width, height) => {
                         let size = Size::from((width, height));
@@ -150,7 +144,7 @@ where
             self.screen.erase();
 
             if self.enable_meta {
-                self.meta.update(&mut self.ctx, &self.current_frame);
+                self.meta.update(&mut self.ctx, self.nodes.count());
             }
         }
     }

@@ -6,6 +6,7 @@ use parking_lot::RwLock;
 use crate::error::{Error, Result};
 use crate::gen::store::Values;
 use crate::layout::Padding;
+use crate::node::NodeId;
 use crate::template::Template;
 use crate::values::ValuesAttributes;
 use crate::widget::AnyWidget;
@@ -27,6 +28,7 @@ pub struct Factory;
 
 impl Factory {
     pub fn exec<'tpl, 'parent>(
+        id: NodeId,
         template: &'tpl Template,
         values: &Values<'parent>,
     ) -> Result<WidgetContainer> {
@@ -49,7 +51,7 @@ impl Factory {
                 let widget = factory.make(values, text.as_ref())?;
                 drop(factories);
 
-                let mut container = WidgetContainer::new(widget, children.clone());
+                let mut container = WidgetContainer::new(id, widget, children.clone());
                 container.background = background;
                 container.padding = padding;
                 container.display = display;

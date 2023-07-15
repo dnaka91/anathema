@@ -1,8 +1,9 @@
 use anathema_render::{Size, Style};
 use anathema_widget_core::contexts::{LayoutCtx, PaintCtx, PositionCtx, WithSize};
 use anathema_widget_core::error::Result;
+use anathema_widget_core::node::{NodeEval, Nodes};
 use anathema_widget_core::{
-    AnyWidget, Generator, LocalPos, TextPath, Value, ValuesAttributes, Widget, WidgetContainer,
+    AnyWidget, LocalPos, TextPath, Value, ValuesAttributes, Widget, WidgetContainer,
     WidgetFactory,
 };
 use unicode_width::UnicodeWidthStr;
@@ -74,7 +75,7 @@ impl Text {
     fn text_and_style<'a>(
         &'a self,
         entry: &Entry,
-        children: &'a [WidgetContainer],
+        children: &'a [&mut WidgetContainer],
     ) -> (&'a str, Style) {
         let widget_index = match entry {
             Entry::All { index, .. } => index,
@@ -101,7 +102,7 @@ impl Text {
     fn paint_line(
         &self,
         range: &mut std::ops::Range<usize>,
-        children: &[WidgetContainer],
+        children: &[&mut WidgetContainer],
         y: usize,
         ctx: &mut PaintCtx<'_, WithSize>,
     ) {
@@ -145,7 +146,7 @@ impl Widget for Text {
     fn layout<'widget, 'parent>(
         &mut self,
         ctx: LayoutCtx<'widget, 'parent>,
-        children: &mut Vec<WidgetContainer>,
+        mut nodes: NodeEval<'widget>,
     ) -> Result<Size> {
         let max_size = Size::new(ctx.constraints.max_width, ctx.constraints.max_height);
         self.layout.set_max_size(max_size);
@@ -154,41 +155,41 @@ impl Widget for Text {
         self.layout.process(self.text.as_str());
 
         let mut values = ctx.values.next();
-        let mut gen = Generator::new(&ctx.nodes, &mut values);
-        while let Some(mut span) = gen.next(&mut values).transpose()? {
+        while let Some(mut span) = nodes.next(&mut values).transpose()? {
             // Ignore any widget that isn't a span
             if span.kind() != TextSpan::KIND {
                 continue;
             }
 
             let Some(inner_span) = span.try_to_mut::<TextSpan>() else {
+                nodes.pop();
                 continue;
             };
             self.layout.process(inner_span.text.as_str());
-            children.push(span);
         }
 
         Ok(self.layout.size())
     }
 
-    fn paint<'ctx>(&mut self, mut ctx: PaintCtx<'_, WithSize>, children: &mut [WidgetContainer]) {
+    fn paint(&mut self, mut ctx: PaintCtx<'_, WithSize>, nodes: &mut Nodes) {
         let mut y = 0;
         let mut range = 0..0;
+        let children = nodes.iter_mut().collect::<Vec<_>>();
         for entry in &self.layout.lines.inner {
             match entry {
                 Entry::All { .. } | Entry::Range(_) => range.end += 1,
                 Entry::Newline => {
-                    self.paint_line(&mut range, children, y, &mut ctx);
+                    self.paint_line(&mut range, children.as_slice(), y, &mut ctx);
                     y += 1;
                     continue;
                 }
             };
         }
 
-        self.paint_line(&mut range, children, y, &mut ctx);
+        self.paint_line(&mut range, children.as_slice(), y, &mut ctx);
     }
 
-    fn position(&mut self, _: PositionCtx, _: &mut [WidgetContainer]) {
+    fn position(&mut self, _: PositionCtx, _: &mut Nodes) {
         // NOTE: there is no need to position text as the text
         // is printed from the context position
     }
@@ -219,16 +220,16 @@ impl Widget for TextSpan {
         Self::KIND
     }
 
-    fn layout(&mut self, _ctx: LayoutCtx<'_, '_>, _: &mut Vec<WidgetContainer>) -> Result<Size> {
+    fn layout(&mut self, _ctx: LayoutCtx<'_, '_>, _: NodeEval<'_>) -> Result<Size> {
         panic!("layout should never be called directly on a span");
     }
 
-    fn position(&mut self, _: PositionCtx, _: &mut [WidgetContainer]) {
+    fn position(&mut self, _: PositionCtx, _: &mut Nodes) {
         // NOTE: there is no need to position text as the text is printed from the context position
         panic!("don't invoke position on the span directly.");
     }
 
-    fn paint(&mut self, _: PaintCtx<'_, WithSize>, _: &mut [WidgetContainer]) {
+    fn paint(&mut self, _: PaintCtx<'_, WithSize>, _: &mut Nodes) {
         panic!("don't invoke paint on the span directly.");
     }
 }

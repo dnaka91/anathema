@@ -2,6 +2,7 @@ use anathema_render::Size;
 use anathema_widget_core::contexts::{LayoutCtx, PositionCtx};
 use anathema_widget_core::error::Result;
 use anathema_widget_core::layout::{Align, Layouts};
+use anathema_widget_core::node::{NodeEval, Nodes};
 use anathema_widget_core::{
     AnyWidget, Pos, TextPath, ValuesAttributes, Widget, WidgetContainer, WidgetFactory,
 };
@@ -42,10 +43,10 @@ impl Widget for Alignment {
     fn layout<'widget, 'parent>(
         &mut self,
         mut ctx: LayoutCtx<'widget, 'parent>,
-        children: &mut Vec<WidgetContainer>,
+        nodes: NodeEval<'widget>,
     ) -> Result<Size> {
         let mut layout = Layouts::new(Single, &mut ctx);
-        layout.layout(children)?;
+        layout.layout(nodes)?;
         let size = layout.size()?;
         if size == Size::ZERO {
             Ok(Size::ZERO)
@@ -54,8 +55,8 @@ impl Widget for Alignment {
         }
     }
 
-    fn position(&mut self, ctx: PositionCtx, children: &mut [WidgetContainer]) {
-        if let Some(child) = children.first_mut() {
+    fn position(&mut self, ctx: PositionCtx, nodes: &mut Nodes) {
+        if let Some(child) = nodes.first_mut() {
             let alignment = self.alignment;
 
             let width = ctx.inner_size.width as i32;

@@ -2,7 +2,8 @@ use anathema_render::Size;
 use anathema_widget_core::contexts::LayoutCtx;
 use anathema_widget_core::error::{Error, Result};
 use anathema_widget_core::layout::{Constraints, Layout};
-use anathema_widget_core::{Generator, WidgetContainer};
+use anathema_widget_core::node::NodeEval;
+use anathema_widget_core::WidgetContainer;
 
 pub struct BorderLayout {
     pub min_width: Option<usize>,
@@ -16,7 +17,7 @@ impl Layout for BorderLayout {
     fn layout<'widget, 'parent>(
         &mut self,
         ctx: &mut LayoutCtx<'widget, 'parent>,
-        children: &mut Vec<WidgetContainer>,
+        mut nodes: NodeEval<'widget>,
         size: &mut Size,
     ) -> Result<()> {
         // If there is a min width / height, make sure the minimum constraints
@@ -46,10 +47,12 @@ impl Layout for BorderLayout {
 
         let border_size = self.border_size;
 
-        let mut values = ctx.values.next();
-        let mut gen = Generator::new(&ctx.nodes, &mut values);
+        // ctx.nodes
 
-        *size = match gen.next(&mut values).transpose()? {
+        // let mut gen = Generator::new(ctx);
+
+        let mut values = ctx.values.next();
+        *size = match nodes.next(&mut values).transpose()? {
             Some(mut widget) => {
                 let mut constraints = ctx.padded_constraints();
 
@@ -77,10 +80,7 @@ impl Layout for BorderLayout {
                     return Err(Error::InsufficientSpaceAvailble);
                 }
 
-                let mut size =
-                    widget.layout(constraints, &values)? + border_size + ctx.padding_size();
-
-                children.push(widget);
+                let mut size = widget.layout(&ctx.parent_id, constraints, &values)? + border_size + ctx.padding_size();
 
                 if let Some(min_width) = self.min_width {
                     size.width = size.width.max(min_width);

@@ -43,13 +43,12 @@ fn distribute_size(weights: &[usize], mut total: usize) -> Vec<usize> {
     indexed.into_iter().map(|(_, _, r)| r).collect()
 }
 
-pub fn layout(
+pub fn layout<'a>(
     ctx: &mut LayoutCtx<'_, '_>,
-    children: &mut Vec<WidgetContainer>,
+    children: impl Iterator<Item = &'a mut WidgetContainer>,
     axis: Axis,
 ) -> Result<Size> {
     let expansions = children
-        .iter_mut()
         .filter(|c| c.kind() == Expand::KIND)
         .collect::<Vec<_>>();
 
@@ -88,7 +87,7 @@ pub fn layout(
             }
         };
 
-        let widget_size = expanded_widget.layout(constraints, ctx.values)?;
+        let widget_size = expanded_widget.layout(ctx.parent_id, constraints, ctx.values)?;
 
         match axis {
             Axis::Horizontal => {

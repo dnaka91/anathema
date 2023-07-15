@@ -1,9 +1,9 @@
 use super::scope::Scope;
 use super::store::Values;
+use crate::contexts::LayoutCtx;
 use crate::error::Result;
-use crate::node::Nodes;
+use crate::node::{Action, Node, NodeId, Nodes};
 use crate::template::Template;
-use crate::WidgetContainer;
 
 // -----------------------------------------------------------------------------
 //   - Direction -
@@ -17,14 +17,19 @@ pub enum Direction {
 // -----------------------------------------------------------------------------
 //   - Generator -
 // -----------------------------------------------------------------------------
-pub struct Generator<'parent> {
+pub(crate) struct Generator<'parent> {
     scope: Scope<'parent>,
 }
 
 impl<'parent> Generator<'parent> {
-    pub fn new(nodes: &'parent Nodes, values: &mut Values<'parent>) -> Self {
+    pub fn new(ctx: &LayoutCtx<'parent, 'parent>, templates: &'parent [Template]) -> Self {
         Self {
-            scope: Scope::new(&nodes.templates, values, Direction::Forward),
+            scope: Scope::new(
+                ctx.parent_id,
+                templates,
+                ctx.values,
+                Direction::Forward,
+            ),
         }
     }
 
@@ -38,7 +43,7 @@ impl<'parent> Generator<'parent> {
         self.scope.flip();
     }
 
-    pub fn next(&mut self, values: &mut Values<'parent>) -> Option<Result<WidgetContainer>> {
+    pub fn next(&mut self, values: &mut Values<'parent>) -> Option<Result<Action>> {
         self.scope.next(values)
     }
 }

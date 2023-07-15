@@ -2,6 +2,7 @@ use anathema_render::Size;
 use anathema_widget_core::contexts::{LayoutCtx, PositionCtx};
 use anathema_widget_core::error::Result;
 use anathema_widget_core::layout::{Direction, Layouts};
+use anathema_widget_core::node::{NodeEval, Nodes};
 use anathema_widget_core::{
     AnyWidget, TextPath, ValuesAttributes, Widget, WidgetContainer, WidgetFactory,
 };
@@ -68,7 +69,7 @@ impl Widget for VStack {
     fn layout<'widget, 'parent>(
         &mut self,
         mut ctx: LayoutCtx<'widget, 'parent>,
-        children: &mut Vec<WidgetContainer>,
+        nodes: NodeEval<'widget>,
     ) -> Result<Size> {
         if let Some(width) = self.width {
             ctx.constraints.max_width = ctx.constraints.max_width.min(width);
@@ -84,13 +85,13 @@ impl Widget for VStack {
         }
 
         Layouts::new(Vertical::new(Direction::Forward), &mut ctx)
-            .layout(children)?
+            .layout(nodes)?
             .size()
     }
 
-    fn position(&mut self, ctx: PositionCtx, children: &mut [WidgetContainer]) {
+    fn position(&mut self, mut ctx: PositionCtx, nodes: &mut Nodes) {
         let mut pos = ctx.pos;
-        for widget in children {
+        for widget in nodes.iter_mut() {
             widget.position(pos);
             pos.y += widget.outer_size().height as i32;
         }
