@@ -101,6 +101,7 @@ impl WidgetFactory for AlignmentFactory {
 mod test {
     use anathema_widget_core::contexts::DataCtx;
     use anathema_widget_core::layout::{Constraints, Padding};
+    use anathema_widget_core::node::NodeId;
     use anathema_widget_core::template::template_text;
     use anathema_widget_core::testing::FakeTerm;
     use anathema_widget_core::Values;
@@ -263,12 +264,13 @@ mod test {
     #[test]
     fn unconstrained_alignment_without_child() {
         let constraints = Constraints::unbounded();
-        let mut children = vec![];
         let data = DataCtx::default();
         let store = Values::new(&data);
-        let ctx = LayoutCtx::new(&[], &store, constraints, Padding::ZERO);
+        let ctx = LayoutCtx::new(NodeId::root(), &store, constraints, Padding::ZERO);
+        let mut nodes = Nodes::new(vec![]);
+        let nodes = nodes.gen(ctx);
         let mut alignment = Alignment::new(Align::Left);
-        let actual = alignment.layout(ctx, &mut children).unwrap();
+        let actual = alignment.layout(ctx, nodes).unwrap();
         let expected = Size::ZERO;
         assert_eq!(expected, actual);
     }

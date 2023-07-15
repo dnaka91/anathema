@@ -78,7 +78,7 @@ where
 
     fn layout(&mut self) -> Result<()> {
         let values = Values::new(&self.ctx);
-        let root_id = NodeId::empty();
+        let root_id = NodeId::root();
         let layout_ctx = LayoutCtx::new(&root_id, &values, self.constraints, Padding::ZERO);
         let mut node_gen = self.nodes.gen(layout_ctx);
         let mut values = values.next();

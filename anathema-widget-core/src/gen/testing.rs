@@ -6,6 +6,7 @@ use super::scope::Scope;
 use super::store::Values;
 use crate::contexts::{DataCtx, LayoutCtx, PositionCtx};
 use crate::error::Result;
+use crate::node::{Action, Node, NodeEval, NodeId, Nodes};
 use crate::template::Template;
 use crate::{
     AnyWidget, Attributes, Factory, TextPath, Value, ValuesAttributes, Widget, WidgetContainer,
@@ -19,12 +20,12 @@ impl Widget for TestWidget {
     fn layout<'widget, 'parent>(
         &mut self,
         _: LayoutCtx<'widget, 'parent>,
-        _: &mut Vec<WidgetContainer>,
+        _: NodeEval<'_>,
     ) -> Result<Size> {
         Ok(Size::new(self.0.width(), 1))
     }
 
-    fn position(&mut self, _: PositionCtx, _: &mut [WidgetContainer]) {}
+    fn position(&mut self, _: PositionCtx, _: &mut Nodes) {}
 }
 
 struct TestWidgetFactory;
@@ -82,9 +83,13 @@ impl TestSetup {
         self
     }
 
-    pub fn scope<'a>(&'a mut self) -> TestScope<'a> {
-        let mut store = Values::new(&self.root);
-        let inner = Scope::new(&self.templates, &mut store, Direction::Forward);
+    pub fn scope<'a>(&'a mut self, mut store: Values<'a>) -> TestScope<'a> {
+        let inner = Scope::new(
+            &NodeId::root(),
+            &self.templates,
+            &mut store,
+            Direction::Forward,
+        );
 
         TestScope {
             values: store,
@@ -100,7 +105,10 @@ pub struct TestScope<'a> {
 
 impl TestScope<'_> {
     pub fn next_unchecked(&mut self) -> WidgetContainer {
-        self.inner.next(&mut self.values).unwrap().unwrap()
+        match self.inner.next(&mut self.values).unwrap().unwrap() {
+            Action::Add(Node::Single(wc)) => wc,
+            _ => panic!(),
+        }
     }
 
     pub fn next_assume_text(&mut self) -> String {
@@ -110,7 +118,7 @@ impl TestScope<'_> {
 }
 
 impl Iterator for TestScope<'_> {
-    type Item = WidgetContainer;
+    type Item = Action;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.inner.next(&mut self.values).transpose().unwrap()

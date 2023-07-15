@@ -7,12 +7,15 @@ use crate::gen::generator::Generator;
 use crate::template::Template;
 use crate::{Values, WidgetContainer};
 
+static ROOT: NodeId = NodeId(Vec::new());
+
 pub enum Action {
     Add(Node),
     StartCollection,
     EndCollection,
 }
 
+#[derive(Debug, Clone)]
 pub struct NodeId(Vec<usize>);
 
 impl NodeId {
@@ -25,8 +28,8 @@ impl NodeId {
         Self(inner)
     }
 
-    pub const fn empty() -> Self {
-        NodeId(vec![])
+    pub fn root() -> &'static NodeId {
+        &ROOT
     }
 }
 

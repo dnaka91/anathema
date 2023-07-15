@@ -69,7 +69,7 @@ pub fn test_widget(
     expected: FakeTerm,
 ) {
     let children = children.into();
-    let widget = WidgetContainer::new(NodeId::empty(), Box::new(widget), children.into());
+    let widget = WidgetContainer::new(NodeId::root().clone(), Box::new(widget), children.into());
     test_widget_container(widget, expected)
 }
 
@@ -78,7 +78,7 @@ pub fn test_widget_container(mut widget: WidgetContainer, mut expected: FakeTerm
     let constraints = Constraints::new(Some(expected.size.width), Some(expected.size.height));
     let data = DataCtx::default();
     let store = Values::new(&data);
-    widget.layout(&NodeId::empty(), constraints, &store).unwrap();
+    widget.layout(&NodeId::root(), constraints, &store).unwrap();
 
     // Position
     widget.position(Pos::ZERO);
