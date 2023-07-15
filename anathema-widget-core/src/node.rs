@@ -133,6 +133,10 @@ impl<'a> NodeEval<'a> {
         self.gen.flip()
     }
 
+    pub fn reverse(&mut self) {
+        self.gen.reverse()
+    }
+
     pub fn pop(&mut self) -> Option<WidgetContainer> {
         let last = self.inner.pop()?;
         match last {
