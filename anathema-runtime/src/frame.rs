@@ -3,11 +3,12 @@ use std::slice::IterMut;
 use anathema_widget_core::WidgetContainer;
 
 fn len_of_tree(widgets: &[WidgetContainer]) -> usize {
-    let mut count = widgets.len();
-    for widget in widgets {
-        count += len_of_tree(&widget.children);
-    }
-    count
+    panic!()
+    // let mut count = widgets.len();
+    // for widget in widgets {
+    //     count += len_of_tree(&widget.children);
+    // }
+    // count
 }
 
 pub struct Frame {

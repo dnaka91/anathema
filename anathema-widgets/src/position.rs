@@ -108,7 +108,7 @@ impl Widget for Position {
         layout.size()
     }
 
-    fn position<'ctx>(&mut self, mut ctx: PositionCtx, children: &mut [WidgetContainer]) {
+    fn position(&mut self, mut ctx: PositionCtx, children: &mut [WidgetContainer]) {
         let child = match children.first_mut() {
             Some(c) => c,
             None => return,

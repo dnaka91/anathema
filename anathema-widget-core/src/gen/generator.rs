@@ -1,6 +1,7 @@
 use super::scope::Scope;
 use super::store::Values;
 use crate::error::Result;
+use crate::node::Nodes;
 use crate::template::Template;
 use crate::WidgetContainer;
 
@@ -21,9 +22,9 @@ pub struct Generator<'parent> {
 }
 
 impl<'parent> Generator<'parent> {
-    pub fn new(templates: &'parent [Template], values: &mut Values<'parent>) -> Self {
+    pub fn new(nodes: &'parent Nodes, values: &mut Values<'parent>) -> Self {
         Self {
-            scope: Scope::new(templates, values, Direction::Forward),
+            scope: Scope::new(&nodes.templates, values, Direction::Forward),
         }
     }
 

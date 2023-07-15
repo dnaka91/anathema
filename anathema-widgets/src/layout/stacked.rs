@@ -18,7 +18,7 @@ impl Layout for Stacked {
 
         let constraints = ctx.padded_constraints();
         let mut values = ctx.values.next();
-        let mut gen = Generator::new(&ctx.templates, &mut values);
+        let mut gen = Generator::new(&ctx.nodes, &mut values);
 
         while let Some(widget) = gen.next(&mut values).transpose()? {
             let index = children.len();

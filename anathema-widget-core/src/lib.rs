@@ -10,6 +10,7 @@ mod gen;
 mod id;
 pub mod layout;
 mod lookup;
+mod node;
 mod path;
 pub mod template;
 mod values;

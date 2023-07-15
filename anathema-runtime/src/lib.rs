@@ -80,15 +80,16 @@ where
     }
 
     fn layout(&mut self) -> Result<()> {
-        let mut values = Values::new(&self.ctx);
-        let mut widgets = Generator::new(&self.templates, &mut values);
-        let mut frame = Frame::empty();
-        while let Some(mut widget) = widgets.next(&mut values).transpose()? {
-            widget.layout(self.constraints, &values)?;
-            frame.push(widget);
-        }
-        self.current_frame = frame;
-        Ok(())
+        panic!()
+        // let mut values = Values::new(&self.ctx);
+        // let mut widgets = Generator::new(&self.templates, &mut values);
+        // let mut frame = Frame::empty();
+        // while let Some(mut widget) = widgets.next(&mut values).transpose()? {
+        //     widget.layout(self.constraints, &values)?;
+        //     frame.push(widget);
+        // }
+        // self.current_frame = frame;
+        // Ok(())
     }
 
     fn position(&mut self) {

@@ -154,7 +154,7 @@ impl Widget for Text {
         self.layout.process(self.text.as_str());
 
         let mut values = ctx.values.next();
-        let mut gen = Generator::new(&ctx.templates, &mut values);
+        let mut gen = Generator::new(&ctx.nodes, &mut values);
         while let Some(mut span) = gen.next(&mut values).transpose()? {
             // Ignore any widget that isn't a span
             if span.kind() != TextSpan::KIND {
@@ -188,7 +188,7 @@ impl Widget for Text {
         self.paint_line(&mut range, children, y, &mut ctx);
     }
 
-    fn position<'ctx>(&mut self, _: PositionCtx, _: &mut [WidgetContainer]) {
+    fn position(&mut self, _: PositionCtx, _: &mut [WidgetContainer]) {
         // NOTE: there is no need to position text as the text
         // is printed from the context position
     }
@@ -223,12 +223,12 @@ impl Widget for TextSpan {
         panic!("layout should never be called directly on a span");
     }
 
-    fn position<'ctx>(&mut self, _: PositionCtx, _: &mut [WidgetContainer]) {
+    fn position(&mut self, _: PositionCtx, _: &mut [WidgetContainer]) {
         // NOTE: there is no need to position text as the text is printed from the context position
         panic!("don't invoke position on the span directly.");
     }
 
-    fn paint<'ctx>(&mut self, _: PaintCtx<'_, WithSize>, _: &mut [WidgetContainer]) {
+    fn paint(&mut self, _: PaintCtx<'_, WithSize>, _: &mut [WidgetContainer]) {
         panic!("don't invoke paint on the span directly.");
     }
 }

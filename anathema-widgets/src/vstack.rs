@@ -88,7 +88,7 @@ impl Widget for VStack {
             .size()
     }
 
-    fn position<'gen, 'ctx>(&mut self, ctx: PositionCtx, children: &mut [WidgetContainer]) {
+    fn position(&mut self, ctx: PositionCtx, children: &mut [WidgetContainer]) {
         let mut pos = ctx.pos;
         for widget in children {
             widget.position(pos);

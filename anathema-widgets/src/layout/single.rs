@@ -15,7 +15,7 @@ impl Layout for Single {
     ) -> Result<()> {
         let constraints = ctx.padded_constraints();
         let mut values = ctx.values.next();
-        let mut gen = Generator::new(&ctx.templates, &mut values);
+        let mut gen = Generator::new(&ctx.nodes, &mut values);
 
         if let Some(widget) = gen.next(&mut values).transpose()? {
             children.push(widget);

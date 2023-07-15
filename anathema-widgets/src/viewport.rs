@@ -59,7 +59,7 @@ impl Widget for Viewport {
         layout.size()
     }
 
-    fn position<'ctx>(&mut self, ctx: PositionCtx, children: &mut [WidgetContainer]) {
+    fn position(&mut self, ctx: PositionCtx, children: &mut [WidgetContainer]) {
         let mut pos = ctx.pos;
         if let Direction::Backward = self.direction {
             match self.axis {

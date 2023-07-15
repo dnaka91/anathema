@@ -125,7 +125,7 @@ impl Layout for Many {
         size: &mut Size,
     ) -> Result<()> {
         let mut values = ctx.values.next();
-        let mut gen = Generator::new(&ctx.templates, &mut values);
+        let mut gen = Generator::new(&ctx.nodes, &mut values);
         let max_constraints = ctx.padded_constraints();
 
         let mut used_size = SizeMod::new(

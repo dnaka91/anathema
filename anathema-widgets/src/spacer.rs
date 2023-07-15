@@ -43,9 +43,9 @@ impl Widget for Spacer {
             .size()
     }
 
-    fn position<'ctx>(&mut self, _: PositionCtx, _: &mut [WidgetContainer]) {}
+    fn position(&mut self, _: PositionCtx, _: &mut [WidgetContainer]) {}
 
-    fn paint<'ctx>(&mut self, _: PaintCtx<'_, WithSize>, _: &mut [WidgetContainer]) {}
+    fn paint(&mut self, _: PaintCtx<'_, WithSize>, _: &mut [WidgetContainer]) {}
 }
 
 pub(crate) struct SpacerFactory;

@@ -47,7 +47,7 @@ impl Layout for BorderLayout {
         let border_size = self.border_size;
 
         let mut values = ctx.values.next();
-        let mut gen = Generator::new(&ctx.templates, &mut values);
+        let mut gen = Generator::new(&ctx.nodes, &mut values);
 
         *size = match gen.next(&mut values).transpose()? {
             Some(mut widget) => {

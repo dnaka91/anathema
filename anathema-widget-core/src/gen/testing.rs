@@ -24,7 +24,7 @@ impl Widget for TestWidget {
         Ok(Size::new(self.0.width(), 1))
     }
 
-    fn position<'tpl>(&mut self, _: PositionCtx, _: &mut [WidgetContainer]) {}
+    fn position(&mut self, _: PositionCtx, _: &mut [WidgetContainer]) {}
 }
 
 struct TestWidgetFactory;

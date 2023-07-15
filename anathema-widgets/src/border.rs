@@ -282,7 +282,7 @@ impl Widget for Border {
         layout.layout(children)?.size()
     }
 
-    fn position<'ctx>(&mut self, mut ctx: PositionCtx, children: &mut [WidgetContainer]) {
+    fn position(&mut self, mut ctx: PositionCtx, children: &mut [WidgetContainer]) {
         let child = match children.first_mut() {
             Some(child) => child,
             None => return,
@@ -299,7 +299,7 @@ impl Widget for Border {
         child.position(ctx.pos);
     }
 
-    fn paint<'ctx>(&mut self, mut ctx: PaintCtx<'_, WithSize>, children: &mut [WidgetContainer]) {
+    fn paint(&mut self, mut ctx: PaintCtx<'_, WithSize>, children: &mut [WidgetContainer]) {
         // Draw the child
         if let Some(child) = children.first_mut() {
             let clipping_region = ctx.create_region();

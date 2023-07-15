@@ -114,13 +114,13 @@ impl Widget for Expand {
         Ok(size)
     }
 
-    fn position<'ctx>(&mut self, ctx: PositionCtx, children: &mut [WidgetContainer]) {
+    fn position(&mut self, ctx: PositionCtx, children: &mut [WidgetContainer]) {
         if let Some(c) = children.first_mut() {
             c.position(ctx.pos)
         }
     }
 
-    fn paint<'ctx>(&mut self, mut ctx: PaintCtx<'_, WithSize>, children: &mut [WidgetContainer]) {
+    fn paint(&mut self, mut ctx: PaintCtx<'_, WithSize>, children: &mut [WidgetContainer]) {
         if !self.fill.is_empty() {
             for y in 0..ctx.local_size.height {
                 let mut used_width = 0;

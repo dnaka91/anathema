@@ -93,13 +93,13 @@ impl Widget for ZStack {
         Layouts::new(Stacked, &mut ctx).layout(children)?.size()
     }
 
-    fn position<'ctx>(&mut self, ctx: PositionCtx, children: &mut [WidgetContainer]) {
+    fn position(&mut self, ctx: PositionCtx, children: &mut [WidgetContainer]) {
         for widget in children {
             widget.position(ctx.pos);
         }
     }
 
-    fn paint<'ctx>(&mut self, mut ctx: PaintCtx<'_, WithSize>, children: &mut [WidgetContainer]) {
+    fn paint(&mut self, mut ctx: PaintCtx<'_, WithSize>, children: &mut [WidgetContainer]) {
         for child in children {
             let ctx = ctx.sub_context(None);
             child.paint(ctx);
