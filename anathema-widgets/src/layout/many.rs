@@ -3,7 +3,7 @@ use anathema_widget_core::contexts::LayoutCtx;
 use anathema_widget_core::error::{Error, Result};
 use anathema_widget_core::layout::{Axis, Constraints, Direction, Layout};
 use anathema_widget_core::node::NodeEval;
-use anathema_widget_core::WidgetContainer;
+
 
 use super::{expand, spacers};
 use crate::{Expand, Spacer};
@@ -137,7 +137,7 @@ impl Layout for Many {
             nodes.flip();
         }
 
-        while let Some(mut widget) = nodes.next(&mut values).transpose()? {
+        while let Some(widget) = nodes.next(&mut values).transpose()? {
             // Ignore spacers and expanders
             if [Spacer::KIND, Expand::KIND].contains(&widget.kind()) {
                 continue;

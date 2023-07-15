@@ -4,7 +4,7 @@ use anathema_widget_core::error::Result;
 use anathema_widget_core::layout::{Axis, Direction, Layouts};
 use anathema_widget_core::node::{NodeEval, Nodes};
 use anathema_widget_core::{
-    AnyWidget, TextPath, ValuesAttributes, Widget, WidgetContainer, WidgetFactory,
+    AnyWidget, TextPath, ValuesAttributes, Widget, WidgetFactory,
 };
 
 use crate::layout::many::Many;
@@ -60,7 +60,7 @@ impl Widget for Viewport {
         layout.size()
     }
 
-    fn position(&mut self, mut ctx: PositionCtx, nodes: &mut Nodes) {
+    fn position(&mut self, ctx: PositionCtx, nodes: &mut Nodes) {
         let mut pos = ctx.pos;
         if let Direction::Backward = self.direction {
             match self.axis {

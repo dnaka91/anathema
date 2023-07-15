@@ -4,7 +4,7 @@ use anathema_widget_core::error::Result;
 use anathema_widget_core::layout::{Direction, Layouts};
 use anathema_widget_core::node::{NodeEval, Nodes};
 use anathema_widget_core::{
-    AnyWidget, TextPath, ValuesAttributes, Widget, WidgetContainer, WidgetFactory,
+    AnyWidget, TextPath, ValuesAttributes, Widget, WidgetFactory,
 };
 
 use crate::layout::vertical::Vertical;
@@ -89,7 +89,7 @@ impl Widget for VStack {
             .size()
     }
 
-    fn position(&mut self, mut ctx: PositionCtx, nodes: &mut Nodes) {
+    fn position(&mut self, ctx: PositionCtx, nodes: &mut Nodes) {
         let mut pos = ctx.pos;
         for widget in nodes.iter_mut() {
             widget.position(pos);

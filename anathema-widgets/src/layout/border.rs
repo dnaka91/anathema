@@ -3,7 +3,7 @@ use anathema_widget_core::contexts::LayoutCtx;
 use anathema_widget_core::error::{Error, Result};
 use anathema_widget_core::layout::{Constraints, Layout};
 use anathema_widget_core::node::NodeEval;
-use anathema_widget_core::WidgetContainer;
+
 
 pub struct BorderLayout {
     pub min_width: Option<usize>,
@@ -53,7 +53,7 @@ impl Layout for BorderLayout {
 
         let mut values = ctx.values.next();
         *size = match nodes.next(&mut values).transpose()? {
-            Some(mut widget) => {
+            Some(widget) => {
                 let mut constraints = ctx.padded_constraints();
 
                 // Shrink the constraint for the child to fit inside the border

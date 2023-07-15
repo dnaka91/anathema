@@ -4,7 +4,7 @@ use anathema_widget_core::error::Result;
 use anathema_widget_core::layout::Layouts;
 use anathema_widget_core::node::{NodeEval, Nodes};
 use anathema_widget_core::{
-    AnyWidget, TextPath, ValuesAttributes, Widget, WidgetContainer, WidgetFactory,
+    AnyWidget, TextPath, ValuesAttributes, Widget, WidgetFactory,
 };
 
 use crate::layout::stacked::Stacked;
@@ -94,7 +94,7 @@ impl Widget for ZStack {
         Layouts::new(Stacked, &mut ctx).layout(nodes)?.size()
     }
 
-    fn position(&mut self, mut ctx: PositionCtx, nodes: &mut Nodes) {
+    fn position(&mut self, ctx: PositionCtx, nodes: &mut Nodes) {
         for widget in nodes.iter_mut() {
             widget.position(ctx.pos);
         }

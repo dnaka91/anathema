@@ -4,7 +4,7 @@ use anathema_widget_core::error::Result;
 use anathema_widget_core::layout::{Direction, Layouts};
 use anathema_widget_core::node::{NodeEval, Nodes};
 use anathema_widget_core::{
-    AnyWidget, TextPath, ValuesAttributes, Widget, WidgetContainer, WidgetFactory,
+    AnyWidget, TextPath, ValuesAttributes, Widget, WidgetFactory,
 };
 
 use crate::layout::horizontal::Horizontal;

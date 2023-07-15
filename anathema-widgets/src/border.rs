@@ -4,7 +4,7 @@ use anathema_widget_core::error::Result;
 use anathema_widget_core::layout::Layouts;
 use anathema_widget_core::node::{NodeEval, Nodes};
 use anathema_widget_core::{
-    AnyWidget, LocalPos, TextPath, Value, ValuesAttributes, Widget, WidgetContainer, WidgetFactory,
+    AnyWidget, LocalPos, TextPath, Value, ValuesAttributes, Widget, WidgetFactory,
 };
 use unicode_width::UnicodeWidthChar;
 

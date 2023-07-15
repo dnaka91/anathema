@@ -134,7 +134,7 @@ impl<'a> NodeEval<'a> {
     }
 
     pub fn pop(&mut self) -> Option<WidgetContainer> {
-        let mut last = self.inner.pop()?;
+        let last = self.inner.pop()?;
         match last {
             Node::Single(wc) => Some(wc),
             Node::Collection(mut nodes) => {

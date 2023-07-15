@@ -155,7 +155,7 @@ impl Widget for Text {
         self.layout.process(self.text.as_str());
 
         let mut values = ctx.values.next();
-        while let Some(mut span) = nodes.next(&mut values).transpose()? {
+        while let Some(span) = nodes.next(&mut values).transpose()? {
             // Ignore any widget that isn't a span
             if span.kind() != TextSpan::KIND {
                 continue;

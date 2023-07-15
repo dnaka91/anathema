@@ -6,8 +6,8 @@ use unicode_width::UnicodeWidthChar;
 pub use self::data::DataCtx;
 use crate::gen::store::Values;
 use crate::layout::{Align, Constraints, Padding};
-use crate::node::{Nodes, NodeId};
-use crate::template::Template;
+use crate::node::{NodeId};
+
 use crate::{LocalPos, Pos, Region};
 
 mod data;

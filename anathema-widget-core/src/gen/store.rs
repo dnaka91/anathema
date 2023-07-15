@@ -107,7 +107,7 @@ impl<'parent> Values<'parent> {
 
 #[cfg(test)]
 mod test {
-    use std::borrow::Cow;
+    
 
     use super::*;
 
@@ -120,7 +120,7 @@ mod test {
     #[test]
     fn get_nested_values() {
         let root = root();
-        let mut values = Values::new(&root);
+        let values = Values::new(&root);
         assert_eq!(*values.get_ref::<i64>("key").unwrap(), 1);
 
         let mut values = values.next();

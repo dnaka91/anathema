@@ -279,7 +279,7 @@ impl WidgetContainer {
             Display::Exclude => self.size = Size::ZERO,
             _ => {
                 let layout = LayoutCtx::new(parent_id, values, constraints, self.padding);
-                let mut eval = self.children.gen(layout);
+                let eval = self.children.gen(layout);
                 let size = self.inner.layout(layout, eval)?;
                 self.size = size;
                 self.size.width += self.padding.left + self.padding.right;
