@@ -1,3 +1,4 @@
+use crate::values::notifications::ValueWrapper;
 use crate::Value;
 
 pub(crate) mod expressions;
@@ -10,20 +11,20 @@ pub(crate) mod store;
 pub mod testing;
 
 #[derive(Debug)]
-pub enum ValueRef<'parent> {
-    Owned(Value),
-    Borrowed(&'parent Value),
+pub(crate) enum ValueRef<'parent> {
+    Owned(ValueWrapper),
+    Borrowed(&'parent ValueWrapper),
 }
 
 impl<'parent> ValueRef<'parent> {
-    pub fn value(&self) -> Option<&Value> {
+    pub fn value(&self) -> Option<&ValueWrapper> {
         match self {
             Self::Borrowed(val) => Some(val),
             Self::Owned(val) => Some(val),
         }
     }
 
-    pub fn borrowed(&self) -> Option<&'parent Value> {
+    pub fn borrowed(&self) -> Option<&'parent ValueWrapper> {
         match self {
             Self::Borrowed(val) => Some(val),
             Self::Owned(_) => None,
@@ -31,8 +32,8 @@ impl<'parent> ValueRef<'parent> {
     }
 }
 
-impl<'parent> From<&'parent Value> for ValueRef<'parent> {
-    fn from(val: &'parent Value) -> Self {
+impl<'parent> From<&'parent ValueWrapper> for ValueRef<'parent> {
+    fn from(val: &'parent ValueWrapper) -> Self {
         ValueRef::Borrowed(val)
     }
 }

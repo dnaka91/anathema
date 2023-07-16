@@ -77,6 +77,7 @@ where
     }
 
     fn layout(&mut self) -> Result<()> {
+        self.nodes.clear();
         let values = Values::new(&self.ctx);
         let root_id = NodeId::root();
         let layout_ctx = LayoutCtx::new(&root_id, &values, self.constraints, Padding::ZERO);
@@ -95,6 +96,7 @@ where
     }
 
     fn paint(&mut self) {
+        let values = Values::new(&self.ctx);
         for widget in &mut self.nodes.iter_mut() {
             widget.paint(PaintCtx::new(&mut self.screen, None));
         }

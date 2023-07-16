@@ -1,14 +1,18 @@
 use std::fmt;
 
 use crate::gen::store::Values;
+use crate::values::notifications::ValueWrapper;
 use crate::{Fragment, Value};
 
 // Values can only come from the supplied value,
 // meaning the supplied value is either a vector of values or a hashmap
-fn composite_value_lookup<'a, 'b: 'a>(path: &'a Path, value: &'b Value) -> Option<&'b Value> {
+fn composite_value_lookup<'a, 'b: 'a>(
+    path: &'a Path,
+    value: &'b ValueWrapper,
+) -> Option<&'b ValueWrapper> {
     match path {
-        Path::Index(index) => value.to_slice().map(|v| &v[*index]),
-        Path::Key(key) => panic!("need to subscribe at this point"), //value.to_map()?.get(key),
+        Path::Index(index) => value.value.to_slice().map(|v| &v[*index]),
+        Path::Key(key) => value.value.to_map()?.get_wrapper(key),
         Path::Composite(left, right) => {
             let inner = composite_value_lookup(left, value)?;
             composite_value_lookup(right, inner)
@@ -54,7 +58,10 @@ impl fmt::Display for Path {
 }
 
 impl Path {
-    pub fn lookup_value<'parent>(&self, values: &Values<'parent>) -> Option<&'parent Value> {
+    pub(crate) fn lookup_value<'parent>(
+        &self,
+        values: &Values<'parent>,
+    ) -> Option<&'parent ValueWrapper> {
         match self {
             Self::Key(key) => values.get_borrowed_value(key.as_str()),
             Self::Composite(left, right) => {

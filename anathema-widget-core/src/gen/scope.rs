@@ -8,6 +8,7 @@ use super::ValueRef;
 use crate::error::Result;
 use crate::node::{Action, Node, NodeId};
 use crate::template::Template;
+use crate::values::notifications::ValueWrapper;
 use crate::{Factory, Value};
 
 enum State<'parent> {
@@ -15,7 +16,7 @@ enum State<'parent> {
     Loop {
         body: &'parent [Template],
         binding: &'parent str,
-        collection: &'parent [Value],
+        collection: &'parent [ValueWrapper],
         value_index: Index,
     },
 }
@@ -96,10 +97,11 @@ impl<'parent> Scope<'parent> {
 
                     match expr {
                         Expression::Node(template) => {
-                            let container = match Factory::exec(self.parent_id.next(), template, values) {
-                                Ok(container) => container,
-                                Err(e) => break Some(Err(e)),
-                            };
+                            let container =
+                                match Factory::exec(self.parent_id.next(), template, values) {
+                                    Ok(container) => container,
+                                    Err(e) => break Some(Err(e)),
+                                };
 
                             let node = Node::Single(container);
                             break Some(Ok(Action::Add(node)));
@@ -148,7 +150,7 @@ impl<'parent> Scope<'parent> {
                         }
                     };
 
-                    values.set(Cow::Borrowed(binding), ValueRef::Borrowed(value));
+                    values.set(Cow::Borrowed(binding), ValueRef::Borrowed(&value));
 
                     let scope = Scope::new(self.parent_id, body, values, self.index.dir);
                     self.inner = Some(Box::new(scope));

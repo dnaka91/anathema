@@ -17,7 +17,7 @@ pub enum Action {
 
 // TODO: try a comparison in performance using Arc for the vec.
 //       NodeId(Arc<[usize]>)
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialOrd, Ord, Eq, PartialEq)]
 pub struct NodeId(Vec<usize>);
 
 impl NodeId {

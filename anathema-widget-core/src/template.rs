@@ -42,13 +42,13 @@ pub enum Template {
 }
 
 impl Template {
-    pub fn to_expression<'parent>(&'parent self, values: &Values<'parent>) -> Expression<'_> {
+    pub(crate) fn to_expression<'parent>(&'parent self, values: &Values<'parent>) -> Expression<'_> {
         match &self {
             Template::View(id) => {
                 let id = match id {
                     Value::String(s) => Cow::Borrowed(s.as_str()),
                     Value::DataBinding(path) => {
-                        let val = path.lookup_value(values).unwrap_or(&Value::Empty);
+                        let val = path.lookup_value(values).map(|v| &v.value).unwrap_or(&Value::Empty);
                         match val {
                             Value::String(s) => Cow::Borrowed(s.as_str()),
                             _ => Cow::Owned(val.to_string()),
@@ -68,7 +68,7 @@ impl Template {
                     Value::List(slice) => slice.as_slice(),
                     Value::DataBinding(path) => path
                         .lookup_value(values)
-                        .and_then(|v| v.to_slice())
+                        .and_then(|v| v.value.to_slice())
                         .unwrap_or(&[]),
                     _ => &[],
                 };
@@ -86,7 +86,7 @@ impl Template {
                         | Cond::Else(Some(Value::DataBinding(path))) => {
                             let is_true = path
                                 .lookup_value(values)
-                                .and_then(|v| v.to_bool())
+                                .and_then(|v| v.value.to_bool())
                                 .unwrap_or(false);
 
                             if is_true {

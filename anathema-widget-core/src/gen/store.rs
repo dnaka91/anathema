@@ -1,16 +1,20 @@
 use std::borrow::Cow;
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 use std::fmt::Write;
+
+use parking_lot::Mutex;
 
 use super::ValueRef;
 use crate::contexts::DataCtx;
+use crate::node::NodeId;
+use crate::values::notifications::ValueWrapper;
 use crate::{Fragment, TextPath, Value};
 
 // -----------------------------------------------------------------------------
 //   - Layout -
 // -----------------------------------------------------------------------------
 #[derive(Debug)]
-pub struct ScopedValues<'parent>(HashMap<Cow<'parent, str>, ValueRef<'parent>>);
+pub(crate) struct ScopedValues<'parent>(HashMap<Cow<'parent, str>, ValueRef<'parent>>);
 
 impl<'parent> ScopedValues<'parent> {
     pub fn new() -> Self {
@@ -37,7 +41,7 @@ impl<'parent> ScopedValues<'parent> {
 pub struct Values<'parent> {
     pub(crate) root: &'parent DataCtx,
     parent: Option<&'parent Values<'parent>>,
-    pub inner: ScopedValues<'parent>,
+    pub(crate) inner: ScopedValues<'parent>,
 }
 
 impl<'parent> Values<'parent> {
@@ -51,7 +55,7 @@ impl<'parent> Values<'parent> {
                         Fragment::Data(path) => {
                             let _ = path
                                 .lookup_value(self)
-                                .map(|val| write!(&mut output, "{val}"));
+                                .map(|val| write!(&mut output, "{}", val.value));
                         }
                     }
                 }
@@ -81,10 +85,10 @@ impl<'parent> Values<'parent> {
     where
         for<'a> &'a Value: TryInto<&'a T>,
     {
-        self.get_value(key)?.try_into().ok()
+        self.get_value(key).map(|v| &v.value)?.try_into().ok()
     }
 
-    pub fn get_value(&self, key: &str) -> Option<&Value> {
+    pub(crate) fn get_value(&self, key: &str) -> Option<&ValueWrapper> {
         self.inner
             .by_key(key)
             .and_then(|v| v.value())
@@ -92,7 +96,7 @@ impl<'parent> Values<'parent> {
             .or_else(|| self.root.by_key(key))
     }
 
-    pub fn get_borrowed_value(&self, key: &str) -> Option<&'parent Value> {
+    pub(crate) fn get_borrowed_value(&self, key: &str) -> Option<&'parent ValueWrapper> {
         self.inner
             .by_key(key)
             .and_then(|v| v.borrowed())
@@ -100,14 +104,13 @@ impl<'parent> Values<'parent> {
             .or_else(|| self.root.by_key(key))
     }
 
-    pub fn set(&mut self, key: Cow<'parent, str>, val: ValueRef<'parent>) {
+    pub(crate) fn set(&mut self, key: Cow<'parent, str>, val: ValueRef<'parent>) {
         self.inner.set(key, val);
     }
 }
 
 #[cfg(test)]
 mod test {
-    
 
     use super::*;
 
