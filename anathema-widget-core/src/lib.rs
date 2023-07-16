@@ -21,7 +21,7 @@ pub mod testing;
 
 pub use anathema_render::Color;
 pub use lookup::{Factory, WidgetFactory};
-pub use values::{Fragment, Number, Value, ValuesAttributes};
+pub use values::{Fragment, Number, Value, ValuesAttributes, Collection, Map};
 pub use widget::{AnyWidget, Widget, WidgetContainer};
 
 pub use crate::attributes::{fields, Attribute, Attributes};

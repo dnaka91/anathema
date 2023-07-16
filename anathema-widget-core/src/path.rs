@@ -8,7 +8,7 @@ use crate::{Fragment, Value};
 fn composite_value_lookup<'a, 'b: 'a>(path: &'a Path, value: &'b Value) -> Option<&'b Value> {
     match path {
         Path::Index(index) => value.to_slice().map(|v| &v[*index]),
-        Path::Key(key) => value.to_map()?.get(key),
+        Path::Key(key) => panic!("need to subscribe at this point"), //value.to_map()?.get(key),
         Path::Composite(left, right) => {
             let inner = composite_value_lookup(left, value)?;
             composite_value_lookup(right, inner)

@@ -12,5 +12,6 @@ anathema-render = { path = "../anathema-render" }
 bitflags = { workspace = true }
 unicode-width = { workspace = true }
 thiserror = { workspace = true }
+flume = { workspace = true }
 parking_lot = "0.12.1"
 

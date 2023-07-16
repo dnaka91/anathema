@@ -15,6 +15,8 @@ pub enum Action {
     EndCollection,
 }
 
+// TODO: try a comparison in performance using Arc for the vec.
+//       NodeId(Arc<[usize]>)
 #[derive(Debug, Clone)]
 pub struct NodeId(Vec<usize>);
 
@@ -58,6 +60,10 @@ impl Nodes {
             templates: templates.into(),
             inner: vec![],
         }
+    }
+
+    pub fn clear(&mut self) {
+        self.inner.clear();
     }
 
     pub fn first_mut(&mut self) -> Option<&mut WidgetContainer> {

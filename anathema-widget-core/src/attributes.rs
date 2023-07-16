@@ -53,7 +53,7 @@ pub mod fields {
 // -----------------------------------------------------------------------------
 //     - Attributes -
 // -----------------------------------------------------------------------------
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Attributes {
     pub(crate) inner: HashMap<String, Value>,
 }
@@ -146,7 +146,7 @@ impl<'a> IntoIterator for &'a mut Attributes {
 // -----------------------------------------------------------------------------
 //     - Attribute -
 // -----------------------------------------------------------------------------
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Attribute<'src> {
     pub key: &'src str,
     pub val: Value,

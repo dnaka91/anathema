@@ -3,7 +3,7 @@ use std::time::Duration;
 
 use anathema_render::Size;
 use anathema_widget_core::contexts::DataCtx;
-use anathema_widget_core::{Number, Value};
+use anathema_widget_core::{Number, Value, Map};
 
 const META: &'static str = "_meta";
 const TIMINGS: &'static str = "timings";
@@ -27,18 +27,12 @@ impl Meta {
         }
     }
 
-    fn size_map(&self, hm: &mut HashMap<String, Value>) {
-        hm.insert(
-            "width".to_string(),
-            Value::Number(Number::Unsigned(self.size.width as u64)),
-        );
-        hm.insert(
-            "height".to_string(),
-            Value::Number(Number::Unsigned(self.size.height as u64)),
-        );
+    fn size_map(&self, hm: &mut Map) {
+        hm.insert("width", self.size.width as u64);
+        hm.insert("height", self.size.height as u64);
     }
 
-    fn timings_map(&self, hm: &mut HashMap<String, Value>) {
+    fn timings_map(&self, hm: &mut Map) {
         hm.insert(
             "layout".to_string(),
             Value::String(format!("{:?}", self.timings.layout)),
@@ -62,52 +56,52 @@ impl Meta {
     }
 
     pub(super) fn update(&mut self, ctx: &mut DataCtx, node_len: usize) {
-        match ctx.get_mut::<HashMap<String, Value>>(META) {
+        match ctx.get_mut::<Map>(META) {
             None => {
-                let mut metamap = HashMap::new();
+                let mut metamap = Map::empty();
 
-                let mut size = HashMap::new();
+                let mut size = Map::empty();
                 self.size_map(&mut size);
 
-                let mut timings = HashMap::new();
+                let mut timings = Map::empty();
                 self.timings_map(&mut timings);
 
-                metamap.insert(SIZE.into(), size.into());
-                metamap.insert(TIMINGS.to_string(), timings.into());
-                metamap.insert(FOCUS.to_string(), self.focus.into());
-                metamap.insert(COUNT.to_string(), node_len.into());
+                metamap.insert(SIZE, size);
+                metamap.insert(TIMINGS, timings);
+                metamap.insert(FOCUS, self.focus);
+                metamap.insert(COUNT, node_len);
                 ctx.insert(META, metamap);
             }
             Some(meta) => {
-                match meta.get_mut(FOCUS) {
+                match meta.get_mut::<bool, _>(FOCUS) {
                     Some(focus) => *focus = self.focus.into(),
                     None => {
-                        meta.insert(FOCUS.to_string(), self.focus.into());
+                        meta.insert(FOCUS.to_string(), self.focus);
                     }
                 };
 
-                match meta.get_mut(COUNT) {
-                    Some(count) => *count = node_len.into(),
+                match meta.get_mut::<u64, _>(COUNT) {
+                    Some(count) => *count = node_len as u64,
                     None => {
-                        meta.insert(COUNT.to_string(), node_len.into());
+                        meta.insert(COUNT, node_len);
                     }
                 };
 
                 match meta.get_mut(SIZE) {
                     Some(Value::Map(size)) => self.size_map(size),
                     _ => {
-                        let mut size = HashMap::new();
+                        let mut size = Map::empty();
                         self.size_map(&mut size);
-                        meta.insert(SIZE.into(), size.into());
+                        meta.insert(SIZE, size);
                     }
                 }
 
                 match meta.get_mut(TIMINGS) {
                     Some(Value::Map(timings)) => self.timings_map(timings),
                     _ => {
-                        let mut timings = HashMap::new();
+                        let mut timings = Map::empty();
                         self.timings_map(&mut timings);
-                        meta.insert(TIMINGS.into(), timings.into());
+                        meta.insert(TIMINGS, timings);
                     }
                 }
             }

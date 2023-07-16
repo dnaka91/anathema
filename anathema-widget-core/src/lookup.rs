@@ -39,7 +39,7 @@ impl Factory {
                 text,
                 children,
             } => {
-                let values = ValuesAttributes::new(values, attributes);
+                let values = ValuesAttributes::new(&id, values, attributes);
                 let background = values.background();
                 let padding = values.padding_all().unwrap_or_else(|| Padding::ZERO);
                 let display = values.display();

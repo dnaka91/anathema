@@ -1,5 +1,9 @@
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 
+use parking_lot::Mutex;
+
+use crate::node::NodeId;
+use crate::values::Notifier;
 use crate::views::ViewCollection;
 use crate::Value;
 
@@ -7,19 +11,20 @@ use crate::Value;
 pub struct DataCtx {
     data: HashMap<String, Value>,
     pub views: ViewCollection,
+    notifier: Notifier,
 }
 
 impl DataCtx {
     pub fn insert(&mut self, key: impl Into<String>, value: impl Into<Value>) {
-        self.data.insert(key.into(), value.into());
+        let mut value = value.into();
+        if let Value::List(col) = &mut value {
+            col.notifier.replace(self.notifier);
+        }
+        self.data.insert(key.into(), value);
     }
 
     pub fn by_key(&self, key: &str) -> Option<&Value> {
         self.data.get(key)
-    }
-
-    pub fn get_mut_value(&mut self, key: &str) -> Option<&mut Value> {
-        self.data.get_mut(key)
     }
 
     pub fn get_mut<T: 'static>(&mut self, key: &str) -> Option<&mut T>
