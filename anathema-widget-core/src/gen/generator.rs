@@ -2,8 +2,10 @@ use super::scope::Scope;
 use super::store::Values;
 use crate::contexts::LayoutCtx;
 use crate::error::Result;
-use crate::node::{Action};
+use crate::node::{Action, Node, NodeCache};
 use crate::template::Template;
+
+struct CacheIndex(usize);
 
 // -----------------------------------------------------------------------------
 //   - Direction -
@@ -29,6 +31,7 @@ impl<'parent> Generator<'parent> {
                 templates,
                 ctx.values,
                 Direction::Forward,
+                0,
             ),
         }
     }
@@ -43,7 +46,7 @@ impl<'parent> Generator<'parent> {
         self.scope.flip();
     }
 
-    pub fn next(&mut self, values: &mut Values<'parent>) -> Option<Result<Action>> {
-        self.scope.next(values)
+    pub fn next(&mut self, values: &mut Values<'parent>, node_cache: &mut NodeCache) -> Option<Result<Action>> {
+        self.scope.next(values, node_cache)
     }
 }

@@ -6,6 +6,9 @@ use super::parser::{parse_path, parse_to_fragments};
 use crate::error::{ErrorKind, Result};
 use crate::lexer::{Kind, Lexer};
 
+const TRUE: &str = "true";
+const FALSE: &str = "false";
+
 pub(super) struct AttributeParser<'lexer, 'src> {
     lexer: &'lexer mut Lexer<'src>,
 }
@@ -24,9 +27,9 @@ impl<'lexer, 'src> AttributeParser<'lexer, 'src> {
                 TextPath::Fragments(fragments) => Ok(Value::Fragments(fragments)),
             },
             Kind::Hex(r, g, b) => Ok(Value::Color(Color::Rgb { r, g, b })),
-            Kind::Ident(b @ ("true" | "false")) => match b {
-                "true" => Ok(Value::Bool(true)),
-                "false" => Ok(Value::Bool(false)),
+            Kind::Ident(b @ (TRUE | FALSE)) => match b {
+                TRUE => Ok(Value::Bool(true)),
+                FALSE => Ok(Value::Bool(false)),
                 // SAFETY: this could not possible be anything else!
                 _ => unsafe { std::hint::unreachable_unchecked() },
             },

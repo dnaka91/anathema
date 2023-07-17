@@ -78,7 +78,7 @@ pub fn test_widget_container(mut widget: WidgetContainer, mut expected: FakeTerm
     let constraints = Constraints::new(Some(expected.size.width), Some(expected.size.height));
     let data = DataCtx::default();
     let store = Values::new(&data);
-    widget.layout(&NodeId::root(), constraints, &store).unwrap();
+    widget.layout(constraints, &store).unwrap();
 
     // Position
     widget.position(Pos::ZERO);

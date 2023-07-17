@@ -18,7 +18,7 @@ impl Layout for Single {
         let mut values = ctx.values.next();
 
         if let Some(widget) = nodes.next(&mut values).transpose()? {
-            *size = match widget.layout(ctx.parent_id, constraints, &values) {
+            *size = match widget.layout(constraints, &values) {
                 Ok(s) => s,
                 Err(Error::InsufficientSpaceAvailble) => return Ok(()),
                 err @ Err(_) => err?,

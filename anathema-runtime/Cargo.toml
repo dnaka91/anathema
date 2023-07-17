@@ -10,3 +10,4 @@ anathema-widget-core = { path = "../anathema-widget-core" }
 anathema-render = { path = "../anathema-render" }
 flume = { workspace = true }
 crossterm = { workspace = true }
+log = "0.4.19"

@@ -80,7 +80,7 @@ impl Layout for BorderLayout {
                     return Err(Error::InsufficientSpaceAvailble);
                 }
 
-                let mut size = widget.layout(&ctx.parent_id, constraints, &values)? + border_size + ctx.padding_size();
+                let mut size = widget.layout(constraints, &values)? + border_size + ctx.padding_size();
 
                 if let Some(min_width) = self.min_width {
                     size.width = size.width.max(min_width);

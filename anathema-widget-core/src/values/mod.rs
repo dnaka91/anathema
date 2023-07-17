@@ -446,7 +446,7 @@ pub struct ValuesAttributes<'a, 'parent> {
 
 impl<'a, 'parent> ValuesAttributes<'a, 'parent> {
     pub fn text_to_string(&self, text: &'a TextPath) -> Cow<'a, str> {
-        self.values.text_to_string(text)
+        self.values.text_to_string(text, self.node_id)
     }
 
     pub fn new(
@@ -486,10 +486,15 @@ impl<'a, 'parent> ValuesAttributes<'a, 'parent> {
 
     pub fn get_attrib(&self, key: &str) -> Option<&'a Value> {
         let value = self.attributes.get(key)?;
-        let Value::DataBinding(path) = value else {
-            return Some(value);
+        let Value::DataBinding(path) = value else { return Some(value); };
+
+        let val_wrapper = match path.lookup_value(self.values) {
+            Some(val) => val,
+            None => {
+                self.values.sneaky_log_rename_me(path);
+                return None;
+            }
         };
-        let val_wrapper = path.lookup_value(self.values)?;
         val_wrapper.sub(self.node_id);
         Some(val_wrapper.deref())
     }

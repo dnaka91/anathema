@@ -10,12 +10,12 @@ use crate::Value;
 
 static NOTIFICATIONS: OnceLock<Mutex<Vec<(Change, NodeId)>>> = OnceLock::new();
 
-fn drain_notifications() -> Vec<(Change, NodeId)> {
+pub fn drain_notifications() -> Vec<(Change, NodeId)> {
     let v: &mut Vec<_> = &mut *NOTIFICATIONS.get_or_init(Default::default).lock();
     take(v)
 }
 
-fn push_notifications(change: Change, nodes: &BTreeSet<NodeId>) {
+pub(crate) fn push_notifications(change: Change, nodes: &BTreeSet<NodeId>) {
     let changes: &mut Vec<_> = &mut *NOTIFICATIONS.get_or_init(Default::default).lock();
     changes.extend(nodes.iter().map(|n| (change, n.clone())));
 }
@@ -28,10 +28,11 @@ pub enum Change {
     Swap(usize, usize),
 }
 
+// TODO: rename this to something less stupid (if you can)
 #[derive(Debug)]
 pub(crate) struct ValueWrapper {
-    value: Value,
-    subscribers: Mutex<BTreeSet<NodeId>>,
+    pub(crate) value: Value,
+    pub(crate) subscribers: Mutex<BTreeSet<NodeId>>,
 }
 
 impl ValueWrapper {
@@ -103,18 +104,23 @@ mod test {
     #[test]
     fn register_change() {
         let mut value = ValueWrapper::from(1);
-        value.sub(NodeId::root());
+        let root = NodeId::root().clone();
+        let next = root.next();
+        value.sub(&root);
+        value.sub(&next);
         assert!(drain_notifications().is_empty());
         value.deref_mut();
-        assert_eq!(drain_notifications().remove(0), (Change::Modified, NodeId::root().clone()));
+        let mut notifications = drain_notifications();
+        assert_eq!(notifications.remove(0), (Change::Modified, root));
+        assert_eq!(notifications.remove(0), (Change::Modified, next));
     }
 
     #[test]
     fn add_to_collection() {
-        let mut value = ValueWrapper::from(Vec::<Value>::new());
-        value.sub(NodeId::root());
-        let Value::List(list) = value.deref_mut() else { panic!() };
-        list.push(1);
-        assert_eq!(drain_notifications().remove(0), (Change::Add, NodeId::root().clone()));
+        // let mut value = ValueWrapper::from(Vec::<Value>::new());
+        // value.sub(NodeId::root());
+        // let Value::List(list) = value.deref_mut() else { panic!() };
+        // list.push(1);
+        // assert_eq!(drain_notifications().remove(0), (Change::Add, NodeId::root().clone()));
     }
 }

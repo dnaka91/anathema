@@ -4,8 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-default = []
+default = ["logging"]
 testing = []
+logging = ["log"]
 
 [dependencies]
 anathema-render = { path = "../anathema-render" }
@@ -14,4 +15,5 @@ unicode-width = { workspace = true }
 thiserror = { workspace = true }
 flume = { workspace = true }
 parking_lot = "0.12.1"
+log = { version = "0.4.19", optional = true }
 

@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::mem::take;
 
 use super::expressions::Expression;
 use super::generator::Direction;
@@ -6,10 +7,10 @@ use super::index::Index;
 use super::store::Values;
 use super::ValueRef;
 use crate::error::Result;
-use crate::node::{Action, Node, NodeId};
+use crate::node::{Action, Node, NodeId, NodeCache};
 use crate::template::Template;
 use crate::values::notifications::ValueWrapper;
-use crate::{Factory};
+use crate::Factory;
 
 enum State<'parent> {
     Block,
@@ -29,7 +30,8 @@ pub struct Scope<'parent> {
     parent_id: &'parent NodeId,
     state: State<'parent>,
     inner: Option<Box<Scope<'parent>>>,
-    index: Index,
+    expression_index: Index,
+    cache_index: usize,
 }
 
 impl<'parent> Scope<'parent> {
@@ -38,6 +40,7 @@ impl<'parent> Scope<'parent> {
         templates: &'parent [Template],
         values: &Values<'parent>,
         dir: Direction,
+        cache_index: usize,
     ) -> Self {
         let expressions = templates
             .iter()
@@ -46,15 +49,16 @@ impl<'parent> Scope<'parent> {
 
         Self {
             parent_id,
-            index: Index::new(dir, templates.len()),
+            expression_index: Index::new(dir, templates.len()),
             expressions,
             inner: None,
             state: State::Block,
+            cache_index,
         }
     }
 
     pub(super) fn reverse(&mut self) {
-        self.index.reverse();
+        self.expression_index.reverse();
 
         if let State::Loop {
             value_index: value, ..
@@ -69,7 +73,7 @@ impl<'parent> Scope<'parent> {
     }
 
     pub(super) fn flip(&mut self) {
-        self.index.flip();
+        self.expression_index.flip();
 
         if let State::Loop {
             value_index: value, ..
@@ -83,37 +87,54 @@ impl<'parent> Scope<'parent> {
         }
     }
 
-    pub(crate) fn next(&mut self, values: &mut Values<'parent>) -> Option<Result<Action>> {
+    pub(crate) fn next(&mut self, values: &mut Values<'parent>, cache: &mut NodeCache) -> Option<Result<Action>> {
         loop {
-            match self.inner.as_mut().and_then(|scope| scope.next(values)) {
+            match self.inner.as_mut().and_then(|scope| scope.next(values, cache)) {
                 next @ Some(_) => break next,
-                None => self.inner = None,
+                None => {
+                    if let Some(child_scope) = &self.inner {
+                        self.cache_index = child_scope.cache_index;
+                        self.inner = None;
+                    }
+                }
             }
 
             match &mut self.state {
                 State::Block => {
-                    let index = self.index.next()?;
+                    let index = self.expression_index.next()?;
                     let expr = &self.expressions[index];
+                    let dir = self.expression_index.dir;
 
                     match expr {
                         Expression::Node(template) => {
-                            let container =
-                                match Factory::exec(self.parent_id.next(), template, values) {
-                                    Ok(container) => container,
-                                    Err(e) => break Some(Err(e)),
-                                };
+                            self.cache_index += 1;
+                            if let Some(wc) = cache.get_mut(self.cache_index - 1) {
+                                match wc.dirty {
+                                    true => {
+                                        // TODO: haaaack. This is nonsense
+                                        let container = match Factory::exec(take(&mut wc.id), template, values) {
+                                            Ok(container) => container,
+                                            Err(e) => break Some(Err(e)),
+                                        };
+                                        *wc = container;
+                                        return Some(Ok(Action::Cached(self.cache_index - 1)));
+                                    }
+                                    false => return Some(Ok(Action::Cached(self.cache_index - 1))),
+                                }
+                            }
+
+                            let container = match Factory::exec(self.parent_id.next(), template, values) {
+                                Ok(container) => container,
+                                Err(e) => break Some(Err(e)),
+                            };
 
                             let node = Node::Single(container);
                             break Some(Ok(Action::Add(node)));
                         }
                         Expression::View(id) => {
-                            let view = match values.root.views.get(&*id) {
-                                Some(view) => view,
-                                None => continue,
-                            };
+                            let Some(view) = values.get_view(&*id) else { continue; };
                             let templates = view.templates();
-                            let scope =
-                                Scope::new(self.parent_id, &templates, values, self.index.dir);
+                            let scope = Scope::new(self.parent_id, &templates, values, dir, self.cache_index);
                             self.inner = Some(Box::new(scope));
                         }
                         Expression::For {
@@ -125,13 +146,12 @@ impl<'parent> Scope<'parent> {
                                 body,
                                 collection,
                                 binding,
-                                value_index: Index::new(self.index.dir, collection.len()),
+                                value_index: Index::new(dir, collection.len()),
                             };
                             break Some(Ok(Action::StartCollection));
                         }
                         Expression::Block(templates) => {
-                            let scope =
-                                Scope::new(self.parent_id, templates, values, self.index.dir);
+                            let scope = Scope::new(self.parent_id, templates, values, dir, self.cache_index);
                             self.inner = Some(Box::new(scope));
                         }
                     }
@@ -152,7 +172,7 @@ impl<'parent> Scope<'parent> {
 
                     values.set(Cow::Borrowed(binding), ValueRef::Borrowed(&value));
 
-                    let scope = Scope::new(self.parent_id, body, values, self.index.dir);
+                    let scope = Scope::new(self.parent_id, body, values, self.expression_index.dir, self.cache_index);
                     self.inner = Some(Box::new(scope));
                 }
             }

@@ -154,7 +154,7 @@ impl Layout for Many {
                 constraints
             };
 
-            let mut widget_size = match widget.layout(ctx.parent_id, widget_constraints, &values) {
+            let mut widget_size = match widget.layout(widget_constraints, &values) {
                 Ok(s) => s,
                 Err(Error::InsufficientSpaceAvailble) => break,
                 err @ Err(_) => err?,

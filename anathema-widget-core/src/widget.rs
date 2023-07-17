@@ -1,6 +1,7 @@
 use std::any::Any;
 use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
+use std::fmt::{self, Write};
 
 use anathema_render::{ScreenPos, Size, Style};
 
@@ -163,6 +164,7 @@ pub struct WidgetContainer {
     pub(crate) padding: Padding,
     pub(crate) pos: Pos,
     size: Size,
+    pub dirty: bool,
 }
 
 impl WidgetContainer {
@@ -176,6 +178,7 @@ impl WidgetContainer {
             pos: Pos::ZERO,
             background: None,
             padding: Padding::ZERO,
+            dirty: false,
         }
     }
 
@@ -248,14 +251,13 @@ impl WidgetContainer {
     // TODO: review if this should take a `LayoutCtx` instead?
     pub fn layout<'parent>(
         &mut self,
-        parent_id: &NodeId,
         constraints: Constraints,
         values: &Values<'_>,
     ) -> Result<Size> {
         match self.display {
             Display::Exclude => self.size = Size::ZERO,
             _ => {
-                let layout = LayoutCtx::new(parent_id, values, constraints, self.padding);
+                let layout = LayoutCtx::new(&self.id, values, constraints, self.padding);
                 let eval = self.children.gen(layout);
                 let size = self.inner.layout(layout, eval)?;
                 self.size = size;
@@ -311,5 +313,21 @@ impl WidgetContainer {
         }
 
         Some(())
+    }
+}
+
+impl fmt::Debug for WidgetContainer {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("WidgetContainer")
+            .field("kind", &self.kind())
+            .field("id", &self.id)
+            .field("children", &self.children)
+            .field("background", &self.background)
+            .field("display", &self.display)
+            .field("padding", &self.padding)
+            .field("pos", &self.pos)
+            .field("size", &self.size)
+            .field("dirty", &self.dirty)
+            .finish() 
     }
 }

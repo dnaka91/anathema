@@ -1,17 +1,33 @@
 use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
 
-use crate::values::notifications::ValueWrapper;
-use crate::views::ViewCollection;
-use crate::Value;
+use parking_lot::Mutex;
 
-#[derive(Debug, Default)]
+use crate::values::notifications::ValueWrapper;
+use crate::views::{View, ViewCollection};
+use crate::{Path, Value};
+
+pub enum RequestedChange {
+    Path(Path),
+}
+
+#[derive(Default)]
 pub struct DataCtx {
+    log: Mutex<Vec<RequestedChange>>,
     data: HashMap<String, ValueWrapper>,
     pub views: ViewCollection,
 }
 
 impl DataCtx {
+    pub(crate) fn log(&self, change: Path) {
+        panic!("you want to log something I see");
+        self.log.lock().push(RequestedChange::Path(change));
+    }
+
+    pub(crate) fn get_view(&self, key: &str) -> Option<&dyn View> {
+        self.views.get(key)
+    }
+
     pub fn insert(&mut self, key: impl Into<String>, value: impl Into<Value>) {
         let value = value.into();
         self.data

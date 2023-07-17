@@ -52,7 +52,7 @@ pub fn layout<'a>(
     };
 
     for spacer in spacers {
-        let size = spacer.layout(ctx.parent_id, constraints, ctx.values)?;
+        let size = spacer.layout(constraints, ctx.values)?;
 
         match axis {
             Axis::Horizontal => {

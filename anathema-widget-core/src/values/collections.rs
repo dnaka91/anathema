@@ -1,9 +1,11 @@
 use std::borrow::Borrow;
+use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
 
 use parking_lot::Mutex;
 
+use super::notifications::{push_notifications, Change};
 use super::Value;
 use crate::node::NodeId;
 use crate::values::notifications::ValueWrapper;
@@ -91,11 +93,16 @@ impl Map {
         Self::new(HashMap::new())
     }
 
-    pub fn insert(&mut self, key: impl Into<String>, value: impl Into<Value>) -> Option<Value> {
+    pub fn insert(&mut self, key: impl Into<String>, value: impl Into<Value>) {
         // notify subscribers
-        self.values
-            .insert(key.into(), ValueWrapper::new(value.into()))
-            .map(|v| v.into())
+        match self.values.entry(key.into()) {
+            Entry::Occupied(mut entry) => {
+                let entry = entry.get_mut();
+                entry.value = value.into();
+                push_notifications(Change::Modified, &entry.subscribers.lock());
+            }
+            Entry::Vacant(entry) => drop(entry.insert(value.into().into())),
+        }
     }
 
     pub fn remove<Q>(&mut self, key: &Q) -> Option<Value>

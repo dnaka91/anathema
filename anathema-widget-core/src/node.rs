@@ -10,6 +10,7 @@ use crate::{Values, WidgetContainer};
 static ROOT: NodeId = NodeId(Vec::new());
 
 pub enum Action {
+    Cached(usize), // usize = cache index
     Add(Node),
     StartCollection,
     EndCollection,
@@ -17,8 +18,8 @@ pub enum Action {
 
 // TODO: try a comparison in performance using Arc for the vec.
 //       NodeId(Arc<[usize]>)
-#[derive(Debug, Clone, PartialOrd, Ord, Eq, PartialEq)]
-pub struct NodeId(Vec<usize>);
+#[derive(Debug, Clone, PartialOrd, Ord, Eq, PartialEq, Default)]
+pub struct NodeId(pub Vec<usize>);
 
 impl NodeId {
     pub fn next(&self) -> Self {
@@ -35,6 +36,14 @@ impl NodeId {
     }
 }
 
+impl PartialEq<[usize]> for NodeId {
+    fn eq(&self, rhs: &[usize]) -> bool {
+        let max = self.0.len().min(rhs.len());
+        self.0[..max].eq(&rhs[..max])
+    }
+}
+
+#[derive(Debug)]
 pub enum Node {
     Single(WidgetContainer),
     Collection(Vec<WidgetContainer>),
@@ -43,14 +52,39 @@ pub enum Node {
 impl Node {
     fn count(&self) -> usize {
         match self {
-            Self::Single(node) => 1 + node.children.count(),
-            Self::Collection(nodes) => nodes.iter().map(|n| n.children.count()).sum(),
+            Self::Single(widget) => 1 + widget.children.count(),
+            Self::Collection(widgets) => widgets.iter().map(|n| n.children.count()).sum(),
+        }
+    }
+
+    fn by_id(&mut self, id: &[usize]) -> Option<&mut WidgetContainer> {
+        match self {
+            Self::Single(wc) => {
+                if !wc.id.eq(id) {
+                    None
+                } else if wc.id.0.len() == id.len() {
+                    Some(wc)
+                } else {
+                    wc.children.by_id(id)
+                }
+            }
+            Self::Collection(widgets) => {
+                for widget in widgets {
+                    if !widget.id.eq(id) {
+                        continue;
+                    } else {
+                        return  widget.children.by_id(id);
+                    }
+                }
+                None
+            }
         }
     }
 }
 
+#[derive(Debug)]
 pub struct Nodes {
-    inner: Vec<Node>,
+    cache: NodeCache,
     pub(crate) templates: Arc<[Template]>,
 }
 
@@ -58,21 +92,26 @@ impl Nodes {
     pub fn new(templates: impl Into<Arc<[Template]>>) -> Self {
         Self {
             templates: templates.into(),
-            inner: vec![],
+            cache: NodeCache { inner: vec![] },
         }
     }
 
     pub fn clear(&mut self) {
-        self.inner.clear();
+        self.cache.inner.clear();
     }
 
     pub fn first_mut(&mut self) -> Option<&mut WidgetContainer> {
         self.iter_mut().next()
     }
 
+    pub fn by_id(&mut self, id: &[usize]) -> Option<&mut WidgetContainer> {
+        self.cache.by_id(id)
+    }
+
     /// Iterate over the first layer of widget containers.
     pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut WidgetContainer> + '_ {
-        self.inner
+        self.cache
+            .inner
             .iter_mut()
             .map(|node| {
                 let ret: Box<dyn Iterator<Item = &mut WidgetContainer>> = match node {
@@ -86,33 +125,98 @@ impl Nodes {
 
     pub fn gen<'a>(&'a mut self, ctx: LayoutCtx<'a, '_>) -> NodeEval<'a> {
         NodeEval {
-            inner: &mut self.inner,
+            cache: &mut self.cache,
             gen: Generator::new(&ctx, &self.templates),
+            next: vec![0],
         }
     }
 
     /// Count **all** the widget containers in the entire tree.
     pub fn count(&self) -> usize {
-        self.inner.iter().map(|node| node.count()).sum()
+        self.cache.inner.iter().map(|node| node.count()).sum()
     }
 }
 
+// -----------------------------------------------------------------------------
+//   - Node cache -
+// -----------------------------------------------------------------------------
+#[derive(Debug)]
+pub(crate) struct NodeCache {
+    inner: Vec<Node>,
+}
+
+impl NodeCache {
+    fn by_id(&mut self, id: &[usize]) -> Option<&mut WidgetContainer> {
+        for node in &mut self.inner {
+            match node.by_id(id) {
+                Some(wc) => return Some(wc),
+                None => {}
+            }
+        }
+        None
+    }
+
+    pub(crate) fn get_mut(&mut self, mut index: usize) -> Option<&mut WidgetContainer> {
+        for node in &mut self.inner {
+            match node {
+                Node::Single(_) if index > 0 => index -= 1,
+                Node::Single(wc) => return Some(wc),
+                Node::Collection(widget_containers) => {
+                    for wc in widget_containers {
+                        if index == 0 {
+                            return Some(wc);
+                        }
+                        index -= 1;
+                    }
+                }
+            }
+        }
+
+        None
+    }
+
+    fn push(&mut self, node: Node) {
+        self.inner.push(node);
+    }
+
+    fn last_mut(&mut self) -> Option<&mut Node> {
+        self.inner.last_mut()
+    }
+
+    fn pop(&mut self) -> Option<WidgetContainer> {
+        let last = self.inner.pop()?;
+        match last {
+            Node::Single(wc) => Some(wc),
+            Node::Collection(mut nodes) => {
+                let wc = nodes.pop()?;
+                self.inner.push(Node::Collection(nodes));
+                Some(wc)
+            }
+        }
+    }
+}
+
+// -----------------------------------------------------------------------------
+//   - Node evaluator -
+// -----------------------------------------------------------------------------
 pub struct NodeEval<'a> {
-    inner: &'a mut Vec<Node>,
+    cache: &'a mut NodeCache,
     gen: Generator<'a>,
+    next: Vec<usize>,
 }
 
 impl<'a> NodeEval<'a> {
     pub fn next(&mut self, values: &mut Values<'a>) -> Option<Result<&mut WidgetContainer>> {
-        let action = match self.gen.next(values)? {
+        let action = match self.gen.next(values, &mut self.cache)? {
             Ok(n) => n,
             Err(e) => return Some(Err(e)),
         };
 
         match action {
+            Action::Cached(index) => Ok(self.cache.get_mut(index)).transpose(),
             Action::Add(node) => {
-                self.inner.push(node);
-                match self.inner.last_mut() {
+                self.cache.push(node);
+                match self.cache.last_mut() {
                     Some(Node::Single(el)) => Some(Ok(el)),
                     _ => unreachable!(),
                 }
@@ -123,7 +227,8 @@ impl<'a> NodeEval<'a> {
     }
 
     pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut WidgetContainer> + '_ {
-        self.inner
+        self.cache
+            .inner
             .iter_mut()
             .map(|node| {
                 let ret: Box<dyn Iterator<Item = &mut WidgetContainer>> = match node {
@@ -144,14 +249,6 @@ impl<'a> NodeEval<'a> {
     }
 
     pub fn pop(&mut self) -> Option<WidgetContainer> {
-        let last = self.inner.pop()?;
-        match last {
-            Node::Single(wc) => Some(wc),
-            Node::Collection(mut nodes) => {
-                let wc = nodes.pop()?;
-                self.inner.push(Node::Collection(nodes));
-                Some(wc)
-            }
-        }
+        self.cache.pop()
     }
 }

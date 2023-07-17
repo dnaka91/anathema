@@ -21,7 +21,7 @@ impl Layout for Stacked {
         let mut values = ctx.values.next();
 
         while let Some(widget) = nodes.next(&mut values).transpose()? {
-            let size = match widget.layout(ctx.parent_id, constraints, &values) {
+            let size = match widget.layout(constraints, &values) {
                 Ok(s) => s,
                 Err(Error::InsufficientSpaceAvailble) => break,
                 err @ Err(_) => err?,

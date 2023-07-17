@@ -9,7 +9,7 @@ use anathema_widget_core::layout::{Constraints, Padding};
 use anathema_widget_core::node::{NodeId, Nodes};
 use anathema_widget_core::template::Template;
 use anathema_widget_core::views::View;
-use anathema_widget_core::{Pos, Values};
+use anathema_widget_core::{drain_notifications, Pos, Values};
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use events::Event;
 
@@ -77,15 +77,15 @@ where
     }
 
     fn layout(&mut self) -> Result<()> {
-        self.nodes.clear();
+        // self.nodes.clear();
         let values = Values::new(&self.ctx);
-        let root_id = NodeId::root();
-        let layout_ctx = LayoutCtx::new(&root_id, &values, self.constraints, Padding::ZERO);
+        let layout_ctx = LayoutCtx::new(NodeId::root(), &values, self.constraints, Padding::ZERO);
         let mut node_gen = self.nodes.gen(layout_ctx);
         let mut values = values.next();
         while let Some(widget) = node_gen.next(&mut values).transpose()? {
-            widget.layout(&root_id, self.constraints, &values)?;
+            widget.layout(self.constraints, &values)?;
         }
+
         Ok(())
     }
 
@@ -102,10 +102,25 @@ where
         }
     }
 
+    fn update_dirty_widgets(&mut self) {
+        let mut notifications = drain_notifications();
+        for (_change, id) in notifications {
+            if let Some(widget) = self.nodes.by_id(&id.0) {
+                widget.dirty = true;
+            }
+        }
+    }
+
     pub fn run(mut self) -> Result<()> {
+        if self.enable_meta {
+            self.meta.update(&mut self.ctx, self.nodes.count());
+        }
+
         self.screen.clear_all(&mut self.output)?;
 
         'run: loop {
+            self.update_dirty_widgets();
+
             while let Some(event) = self.event_receiver.next() {
                 let event = self.events.event(event, &mut self.ctx, &mut self.nodes);
                 match event {

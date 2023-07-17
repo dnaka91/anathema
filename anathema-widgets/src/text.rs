@@ -187,6 +187,7 @@ impl Widget for Text {
         }
 
         self.paint_line(&mut range, children.as_slice(), y, &mut ctx);
+        self.layout = TextLayout::ZERO;
     }
 
     fn position(&mut self, _: PositionCtx, _: &mut Nodes) {

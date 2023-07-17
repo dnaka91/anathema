@@ -5,8 +5,10 @@ use std::ops::Deref;
 
 use super::ValueRef;
 use crate::contexts::DataCtx;
+use crate::node::NodeId;
 use crate::values::notifications::ValueWrapper;
-use crate::{Fragment, TextPath, Value};
+use crate::views::View;
+use crate::{Fragment, Path, TextPath, Value};
 
 // -----------------------------------------------------------------------------
 //   - Layout -
@@ -35,15 +37,27 @@ impl<'parent> ScopedValues<'parent> {
 // -----------------------------------------------------------------------------
 //   - Values -
 // -----------------------------------------------------------------------------
-#[derive(Debug)]
 pub struct Values<'parent> {
-    pub(crate) root: &'parent DataCtx,
+    root: &'parent DataCtx,
     parent: Option<&'parent Values<'parent>>,
-    pub(crate) inner: ScopedValues<'parent>,
+    inner: ScopedValues<'parent>,
 }
 
 impl<'parent> Values<'parent> {
-    pub fn text_to_string(&self, text: &'parent TextPath) -> Cow<'parent, str> {
+    pub(crate) fn sneaky_log_rename_me(&self, path: &Path) {
+        #[cfg(feature = "logging")]
+        {
+            log::info!("path: {path:?}");
+        }
+        self.root.log(path.clone());
+    }
+
+    pub(crate) fn get_view(&self, key: &str) -> Option<&'parent dyn View> {
+        self.root.get_view(key)
+    }
+
+    // TODO: this function should probably not get a node id
+    pub fn text_to_string(&self, text: &'parent TextPath, node_id: &NodeId) -> Cow<'parent, str> {
         match text {
             TextPath::Fragments(fragments) => {
                 let mut output = String::new();
@@ -51,9 +65,16 @@ impl<'parent> Values<'parent> {
                     match fragment {
                         Fragment::String(s) => output.push_str(s),
                         Fragment::Data(path) => {
-                            let _ = path
-                                .lookup_value(self)
-                                .map(|val| write!(&mut output, "{}", val.deref()));
+                            match path.lookup_value(self) {
+                                Some(val) => {
+                                    write!(&mut output, "{}", val.deref());
+                                    val.sub(node_id);
+                                }
+                                None => {
+                                    panic!();
+                                    self.sneaky_log_rename_me(path);
+                                }
+                            };
                         }
                     }
                 }
