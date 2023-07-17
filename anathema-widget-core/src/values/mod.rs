@@ -2,10 +2,9 @@
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fmt;
-use std::sync::OnceLock;
+use std::ops::Deref;
 
 use anathema_render::Style;
-use parking_lot::Mutex;
 
 pub use self::collections::{Collection, Map};
 use crate::gen::store::Values;
@@ -169,7 +168,7 @@ impl<T: Into<Value>> From<Vec<T>> for Value {
 }
 
 impl<K: Into<String>, V: Into<Value>> From<HashMap<K, V>> for Value {
-    fn from(hm: HashMap<K, V>) -> Self {
+    fn from(_hm: HashMap<K, V>) -> Self {
         panic!()
         // let values = Map::new(v.into_iter().map(T::into).collect());
         // Value::List(values)
@@ -304,7 +303,7 @@ impl fmt::Display for Value {
                 let s = val
                     .values
                     .iter()
-                    .map(|(k, v)| format!("{k}: {}", v.value))
+                    .map(|(k, v)| format!("{k}: {}", v.deref()))
                     .collect::<Vec<_>>()
                     .join(", ");
                 write!(f, "{s}")?;
@@ -492,7 +491,7 @@ impl<'a, 'parent> ValuesAttributes<'a, 'parent> {
         };
         let val_wrapper = path.lookup_value(self.values)?;
         val_wrapper.sub(self.node_id);
-        Some(&val_wrapper.value)
+        Some(val_wrapper.deref())
     }
 
     pub fn height(&self) -> Option<usize> {

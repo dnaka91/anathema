@@ -1,5 +1,6 @@
 use std::borrow::Borrow;
 use std::collections::HashMap;
+use std::ops::{Deref, DerefMut};
 
 use parking_lot::Mutex;
 
@@ -13,14 +14,12 @@ use crate::values::notifications::ValueWrapper;
 #[derive(Debug)]
 pub struct Collection {
     values: Vec<ValueWrapper>,
-    subscribers: Mutex<Vec<NodeId>>,
 }
 
 impl Collection {
     pub fn new(values: Vec<Value>) -> Self {
         Self {
             values: values.into_iter().map(ValueWrapper::new).collect(),
-            subscribers: Mutex::new(vec![]),
         }
     }
 
@@ -30,7 +29,7 @@ impl Collection {
     {
         self.values
             .get_mut(index)
-            .map(|v| &mut v.value)?
+            .map(|v| v.deref_mut())?
             .try_into()
             .ok()
     }
@@ -39,16 +38,16 @@ impl Collection {
     where
         for<'a> &'a Value: TryInto<&'a T>,
     {
-        self.values.get(index).map(|v| &v.value)?.try_into().ok()
+        self.values.get(index).map(|v| v.deref())?.try_into().ok()
     }
 
-    pub fn push(&mut self, value: Value) {
-        self.values.push(ValueWrapper::new(value))
+    pub fn push(&mut self, value: impl Into<Value>) {
+        self.values.push(ValueWrapper::new(value.into()))
     }
 
     pub fn remove(&mut self, index: usize) -> Value {
         // notify subscribers
-        self.values.remove(index).value
+        self.values.remove(index).into()
     }
 
     pub fn swap(&mut self, a: usize, b: usize) {
@@ -71,7 +70,6 @@ impl Clone for Collection {
     fn clone(&self) -> Self {
         Self {
             values: self.values.clone(),
-            subscribers: Mutex::new(vec![]),
         }
     }
 }
@@ -97,7 +95,7 @@ impl Map {
         // notify subscribers
         self.values
             .insert(key.into(), ValueWrapper::new(value.into()))
-            .map(|v| v.value)
+            .map(|v| v.into())
     }
 
     pub fn remove<Q>(&mut self, key: &Q) -> Option<Value>
@@ -106,7 +104,7 @@ impl Map {
         Q: ?Sized,
         Q: std::hash::Hash + PartialEq + Eq,
     {
-        self.values.remove(key).map(|v| v.value)
+        self.values.remove(key).map(|v| v.into())
     }
 
     pub(crate) fn get_wrapper<Q>(&self, key: &Q) -> Option<&ValueWrapper>
@@ -124,7 +122,7 @@ impl Map {
         Q: ?Sized,
         Q: std::hash::Hash + PartialEq + Eq,
     {
-        self.values.get(key).map(|v| &v.value)
+        self.values.get(key).map(|v| v.deref())
     }
 
     pub fn get_ref<T: 'static, Q>(&self, key: &Q) -> Option<&T>
@@ -134,7 +132,7 @@ impl Map {
         Q: ?Sized,
         Q: std::hash::Hash + PartialEq + Eq,
     {
-        self.values.get(key).map(|v| &v.value)?.try_into().ok()
+        self.values.get(key).map(|v| v.deref())?.try_into().ok()
     }
 
     pub fn get_mut<T: 'static, Q>(&mut self, key: &Q) -> Option<&mut T>
@@ -146,7 +144,7 @@ impl Map {
     {
         self.values
             .get_mut(key)
-            .map(|v| &mut v.value)?
+            .map(|v| v.deref_mut())?
             .try_into()
             .ok()
     }

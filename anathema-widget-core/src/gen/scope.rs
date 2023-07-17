@@ -9,7 +9,7 @@ use crate::error::Result;
 use crate::node::{Action, Node, NodeId};
 use crate::template::Template;
 use crate::values::notifications::ValueWrapper;
-use crate::{Factory, Value};
+use crate::{Factory};
 
 enum State<'parent> {
     Block,

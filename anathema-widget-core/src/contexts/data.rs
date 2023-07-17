@@ -1,8 +1,6 @@
-use std::collections::{BTreeSet, HashMap};
+use std::collections::HashMap;
+use std::ops::{Deref, DerefMut};
 
-use parking_lot::Mutex;
-
-use crate::node::NodeId;
 use crate::values::notifications::ValueWrapper;
 use crate::views::ViewCollection;
 use crate::Value;
@@ -15,8 +13,9 @@ pub struct DataCtx {
 
 impl DataCtx {
     pub fn insert(&mut self, key: impl Into<String>, value: impl Into<Value>) {
-        let mut value = value.into();
-        self.data.insert(key.into(), ValueWrapper::new(value.into()));
+        let value = value.into();
+        self.data
+            .insert(key.into(), ValueWrapper::new(value.into()));
     }
 
     pub(crate) fn by_key(&self, key: &str) -> Option<&ValueWrapper> {
@@ -28,11 +27,12 @@ impl DataCtx {
         for<'a> &'a mut T: TryFrom<&'a mut Value, Error = ()>,
         T: Into<Value>,
     {
-        let v = self.data
+        let v = self
+            .data
             .entry(key.into())
             .or_insert(ValueWrapper::new(val.into()));
 
-        let v = &mut v.value;
+        let v = v.deref_mut();
         v.try_into().expect("values was just added")
     }
 
@@ -40,13 +40,17 @@ impl DataCtx {
     where
         for<'a> &'a mut Value: TryInto<&'a mut T>,
     {
-        self.data.get_mut(key).map(|v| &mut v.value)?.try_into().ok()
+        self.data
+            .get_mut(key)
+            .map(|v| v.deref_mut())?
+            .try_into()
+            .ok()
     }
 
     pub fn get_ref<T: 'static>(&self, key: &str) -> Option<&T>
     where
         for<'a> &'a Value: TryInto<&'a T>,
     {
-        self.data.get(key).map(|v| &v.value)?.try_into().ok()
+        self.data.get(key).map(|v| v.deref())?.try_into().ok()
     }
 }

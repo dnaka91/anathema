@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::gen::store::Values;
 use crate::values::notifications::ValueWrapper;
-use crate::{Fragment, Value};
+use crate::{Fragment};
 
 // Values can only come from the supplied value,
 // meaning the supplied value is either a vector of values or a hashmap
@@ -11,8 +11,8 @@ fn composite_value_lookup<'a, 'b: 'a>(
     value: &'b ValueWrapper,
 ) -> Option<&'b ValueWrapper> {
     match path {
-        Path::Index(index) => value.value.to_slice().map(|v| &v[*index]),
-        Path::Key(key) => value.value.to_map()?.get_wrapper(key),
+        Path::Index(index) => (&*value).to_slice().map(|v| &v[*index]),
+        Path::Key(key) => (&*value).to_map()?.get_wrapper(key),
         Path::Composite(left, right) => {
             let inner = composite_value_lookup(left, value)?;
             composite_value_lookup(right, inner)

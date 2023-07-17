@@ -1,12 +1,10 @@
 use std::borrow::Cow;
-use std::collections::{BTreeSet, HashMap};
+use std::collections::HashMap;
 use std::fmt::Write;
-
-use parking_lot::Mutex;
+use std::ops::Deref;
 
 use super::ValueRef;
 use crate::contexts::DataCtx;
-use crate::node::NodeId;
 use crate::values::notifications::ValueWrapper;
 use crate::{Fragment, TextPath, Value};
 
@@ -55,7 +53,7 @@ impl<'parent> Values<'parent> {
                         Fragment::Data(path) => {
                             let _ = path
                                 .lookup_value(self)
-                                .map(|val| write!(&mut output, "{}", val.value));
+                                .map(|val| write!(&mut output, "{}", val.deref()));
                         }
                     }
                 }
@@ -85,7 +83,7 @@ impl<'parent> Values<'parent> {
     where
         for<'a> &'a Value: TryInto<&'a T>,
     {
-        self.get_value(key).map(|v| &v.value)?.try_into().ok()
+        self.get_value(key).map(|v| v.deref())?.try_into().ok()
     }
 
     pub(crate) fn get_value(&self, key: &str) -> Option<&ValueWrapper> {
